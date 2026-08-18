@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { User, FileText, Menu, X, LogIn, LogOut } from 'lucide-react';
+import { User, FileText, LogIn, LogOut } from 'lucide-react'; // Removed Menu and X
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
 import { AuthModal } from '@/components/auth/auth-modal';
@@ -13,12 +13,9 @@ export const GlobalHeader = () => {
   const router = useRouter();
   const isHomePage = pathname === '/';
   
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  
-  // NEW: Scroll state for the landing page header
   const [isScrolled, setIsScrolled] = useState(false);
   
   const { getTotalItems, toggleCart } = useCartStore();
@@ -27,11 +24,9 @@ export const GlobalHeader = () => {
   useEffect(() => {
     setIsMounted(true);
     
-    // Auth Listener
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
     
-    // Scroll Listener
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     
@@ -46,7 +41,6 @@ export const GlobalHeader = () => {
     router.push('/'); 
   };
 
-  // UPDATED: Fixed position for Home page, transitioning to solid dark when scrolled
   const headerClasses = isHomePage 
     ? `fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isScrolled ? 'bg-[#0f172a] shadow-lg' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'} text-white`
     : "sticky top-0 z-50 bg-white border-b border-gray-200 text-black shadow-sm";
@@ -106,10 +100,9 @@ export const GlobalHeader = () => {
                 <LogIn className="w-5 h-5" />
               </button>
             )}
-
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`md:hidden p-1 ${iconClasses}`}>
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            
+            {/* Mobile Menu button removed here */}
+            
           </div>
         </div>
       </header>
