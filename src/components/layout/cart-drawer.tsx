@@ -5,6 +5,7 @@ import { X, Trash2, Plus, Minus, ShoppingBag, Loader2, CheckCircle2 } from 'luci
 import { useCartStore } from '@/store/cartStore';
 import { createClient } from '@/utils/supabase/client';
 import { AuthModal } from '../auth/auth-modal';
+import { usePathname } from 'next/navigation';
 
 export const CartDrawer = () => {
   const { items, isOpen, toggleCart, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
@@ -22,6 +23,8 @@ export const CartDrawer = () => {
   const [orderSuccess, setOrderSuccess] = useState(false);
 
   const supabase = createClient();
+  const pathname = usePathname();
+  const isAdminRoute = pathname?.startsWith('/admin');
 
   // Fix hydration mismatch for localStorage
   useEffect(() => {
@@ -108,7 +111,7 @@ export const CartDrawer = () => {
     }
   };
 
-  if (!isMounted) return null;
+  if (!isMounted || isAdminRoute) return null;
 
   return (
     <>
