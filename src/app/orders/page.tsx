@@ -216,17 +216,17 @@ export default function MyRequestsPage() {
                     <div className="flex gap-8 sm:gap-12">
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Total Items</p>
-                        <p className="font-serif font-bold text-lg">{order.order_items.length} <span className="font-noto font-normal text-sm text-gray-500">Products</span></p>
+                        <p className="font-serif font-bold text-lg text-black">{order.order_items.length} <span className="font-noto font-normal text-sm text-gray-500">Products</span></p>
                       </div>
                       <div>
                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Estimated Value</p>
-                        <p className="font-serif font-bold text-lg">₹{order.total_amount}</p>
+                        <p className="font-serif font-bold text-lg text-black">₹{order.total_amount}</p>
                       </div>
                     </div>
                     
                     <button 
                       onClick={() => toggleOrderDetails(order.id)}
-                      className="flex items-center gap-2 border border-gray-300 hover:border-gray-500 px-4 py-2 rounded-md font-poppins text-xs font-semibold transition-colors"
+                      className="flex items-center gap-2 border text-black/50 border-gray-300 hover:border-gray-500 px-4 py-2 rounded-md font-poppins text-xs font-semibold transition-colors"
                     >
                       {isExpanded ? (
                         <>Close Details <ChevronUp className="w-4 h-4" /></>
