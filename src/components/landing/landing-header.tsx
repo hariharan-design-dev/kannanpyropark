@@ -4,13 +4,20 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { User, ShoppingBag, Menu, X, LogIn } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
+import { useCartStore } from '@/store/cartStore';
 
-export const LandingHeader = ({ cartCount = 0 }: { cartCount?: number }) => {
+export const LandingHeader = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const supabase = createClient();
+  const { getTotalItems, toggleCart } = useCartStore();
+
+  const totalItems = useCartStore((state) => state.getTotalItems());
 
   useEffect(() => {
+    setIsMounted(true);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
     });
@@ -43,14 +50,18 @@ export const LandingHeader = ({ cartCount = 0 }: { cartCount?: number }) => {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-4 text-white">
-          <Link href="/cart" className="relative hover:text-amber-400 transition-colors p-1.5">
+          <button 
+            onClick={toggleCart} 
+            className="relative hover:text-amber-400 transition-colors p-1.5 cursor-pointer"
+          >
             <ShoppingBag className="w-5 h-5" />
-            {cartCount > 0 && (
+            
+            {isMounted && getTotalItems() > 0 && (
               <span className="absolute -top-1 -right-1 bg-amber-500 text-black text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                {cartCount}
+                {getTotalItems()}
               </span>
             )}
-          </Link>
+          </button>
 
           {session ? (
             <Link href="/profile" className="hover:text-amber-400 transition-colors p-1.5 flex items-center gap-2">
