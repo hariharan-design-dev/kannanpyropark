@@ -141,15 +141,27 @@ export const CartDrawer = () => {
             <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
               <CheckCircle2 className="w-16 h-16 text-green-500 animate-bounce" />
               <h3 className="font-serif text-2xl font-bold text-black">Pre-Order Submitted!</h3>
-              <p className="font-noto text-sm text-gray-500 max-w-xs">
+              <p className="font-noto text-sm text-gray-500 max-w-xs mb-4">
                 Your pre-order has been registered successfully. The store admin will review and pack your items shortly.
               </p>
-              <button 
-                onClick={() => { setOrderSuccess(false); toggleCart(); }}
-                className="mt-4 bg-[#0f172a] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-slate-800 transition-colors"
-              >
-                CONTINUE BROWSING
-              </button>
+              <div className="flex flex-col gap-3 w-full max-w-[250px]">
+                <button 
+                  onClick={() => {
+                    setOrderSuccess(false);
+                    toggleCart();
+                    window.location.href = '/orders'; // Redirect to orders
+                  }}
+                  className="w-full bg-[#d97706] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-yellow-600 transition-colors shadow-md"
+                >
+                  VIEW MY ORDERS
+                </button>
+                <button 
+                  onClick={() => { setOrderSuccess(false); toggleCart(); }}
+                  className="w-full bg-[#0f172a] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-slate-800 transition-colors"
+                >
+                  CONTINUE BROWSING
+                </button>
+              </div>
             </div>
           ) : needsDetails ? (
             <form onSubmit={handleSaveDetailsAndOrder} className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm space-y-4">
