@@ -64,6 +64,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         onClose();
       }
     }
+    setPhone('');
+    setPassword('');
+    setFullName('');
     setLoading(false);
   };
 
@@ -145,7 +148,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               disabled={loading || phone.length < 10 || password.length < 6}
               className="w-full bg-[#d97706] hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-poppins font-bold text-sm py-3.5 rounded-md transition-colors flex items-center justify-center gap-2 mt-2 shadow-sm"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLogin ? 'LOGIN TO PRE-ORDER' : 'CREATE ACCOUNT')}
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLogin ? 'LOGIN' : 'CREATE ACCOUNT')}
             </button>
           </form>
 

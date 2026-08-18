@@ -16,6 +16,11 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
 
+  // password update
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState('');
+
   const supabase = createClient();
   const router = useRouter();
 
@@ -46,6 +51,26 @@ export default function ProfilePage() {
 
     fetchProfile();
   }, [router]);
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setUpdatingPassword(true);
+    setPasswordMessage('');
+
+    const {error} = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    setUpdatingPassword(false);
+
+    if(error) {
+      setPasswordMessage(`Error: ${error.message}`);
+    } else {
+      setPasswordMessage('Password updated successfully!');
+      setNewPassword('');
+      setTimeout(() => setPasswordMessage(''), 3000);
+    }
+  };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +188,48 @@ export default function ProfilePage() {
                 className="bg-[#d97706] hover:bg-yellow-600 disabled:bg-gray-300 text-white font-poppins font-bold text-sm px-8 py-3.5 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
               >
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SAVE CHANGES'}
+              </button>
+            </div>
+          </form>
+        </div>
+
+
+        <div className="mt-8 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-gray-50 px-8 py-5 border-b border-gray-100">
+            <h3 className="font-serif text-xl font-bold text-[#1a1f36]">Security</h3>
+            <p className="text-gray-500 text-xs mt-1">Update your account password</p>
+          </div>
+          
+          <form onSubmit={handleUpdatePassword} className="p-8 space-y-4">
+            {passwordMessage && (
+              <div className={`px-4 py-3 rounded-lg text-sm font-semibold flex items-center gap-2 ${passwordMessage.includes('Error') ? 'bg-red-50 text-red-700' : 'bg-green-50 text-green-700'}`}>
+                <CheckCircle2 className="w-4 h-4" />
+                {passwordMessage}
+              </div>
+            )}
+            
+            <div className="space-y-2 max-w-md">
+              <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">
+                New Password
+              </label>
+              <input 
+                type="password" 
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter at least 6 characters"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm text-black placeholder:text-gray-400 focus:outline-none focus:border-[#d97706] transition-colors"
+                minLength={6}
+                required
+              />
+            </div>
+
+            <div className="pt-2">
+              <button 
+                type="submit" 
+                disabled={updatingPassword || newPassword.length < 6}
+                className="bg-[#0f172a] hover:bg-slate-800 disabled:bg-gray-300 text-white font-poppins font-bold text-sm px-8 py-3 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+              >
+                {updatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : 'UPDATE PASSWORD'}
               </button>
             </div>
           </form>
