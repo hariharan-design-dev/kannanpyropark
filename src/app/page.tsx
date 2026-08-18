@@ -10,7 +10,6 @@ import { LandingFooter } from '@/components/landing/landing-footer'; // <-- Add 
 export default function LandingPage() {
   return (
     <main className="min-h-screen flex flex-col bg-white text-black overflow-x-hidden font-noto">
-      <LandingHeader cartCount={0} />
       <HeroSection />
       <FeatureStrip />
       <AboutSection />
