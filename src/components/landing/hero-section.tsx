@@ -6,8 +6,12 @@ export const HeroSection = () => {
     <section className="relative w-full h-[700px] lg:h-[850px] overflow-hidden flex items-center justify-center">
       {/* Background Image - Make sure to add hero-krishna.jpg to public/assets/ */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
         style={{ backgroundImage: "url('/assests/hero-krishna.jpg')", backgroundColor: '#0f172a' }}
+      />
+      <div 
+        className="block md:hidden absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
+        style={{ backgroundImage: "url('/assests/hero-krishna-mobile.jpg')", backgroundColor: '#0f172a' }}
       />
       {/* Dark Overlay for text readability */}
       <div className="absolute inset-0 bg-black/50 z-10" />

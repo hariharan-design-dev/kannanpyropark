@@ -10,13 +10,18 @@ export const FeatureStrip = () => {
   ];
 
   return (
-    <section className="relative z-30 max-w-[90%] lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16">
+    <section className="relative z-30 max-w-[95%] lg:max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-12 sm:-mt-16">
       <div className="bg-[#0f172a] rounded-xl shadow-2xl p-6 lg:p-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 divide-y sm:divide-y-0 sm:divide-x divide-gray-700">
+        
+        {/* Changed to Flexbox for perfect divider alignment */}
+        <div className="flex flex-col lg:flex-row justify-between divide-y lg:divide-y-0 lg:divide-x divide-gray-700">
           {features.map((item, idx) => {
             const IconComp = item.icon;
             return (
-              <div key={idx} className={`flex items-center gap-4 ${idx !== 0 ? 'pt-4 sm:pt-0 sm:pl-6' : ''}`}>
+              <div 
+                key={idx} 
+                className="flex-1 flex items-center justify-start lg:justify-center gap-4 py-5 lg:py-0 lg:px-4 first:pt-0 last:pb-0 lg:first:pl-0 lg:last:pr-0"
+              >
                 <IconComp className="w-8 h-8 text-[#d97706] shrink-0 stroke-[1.5]" />
                 <div>
                   <h4 className="font-poppins font-semibold text-sm text-white">{item.title}</h4>
@@ -26,6 +31,7 @@ export const FeatureStrip = () => {
             );
           })}
         </div>
+        
       </div>
     </section>
   );
