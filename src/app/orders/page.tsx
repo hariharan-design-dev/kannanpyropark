@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Search, ChevronDown, ChevronUp, Package } from 'lucide-react';
+import { Search, ChevronDown, ChevronUp, Package, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 export default function MyRequestsPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [userProfile, setUserProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false); // NEW: Refresh State
   
   // Functional States
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,34 +17,39 @@ export default function MyRequestsPage() {
   
   const supabase = createClient();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // Fetch User Profile (for the Customer Details section)
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-        setUserProfile(profile);
+  // NEW: Extracted fetch logic into a reusable function
+  const fetchData = async (isManualRefresh = false) => {
+    if (isManualRefresh) setIsRefreshing(true);
 
-        // Fetch Orders
-        const { data: ordersData } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false });
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      // Fetch User Profile
+      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+      setUserProfile(profile);
 
-        if (ordersData) {
-          // Add a readable display ID (e.g., #KANNAN-001) for searching
-          const mappedOrders = ordersData.map((order, idx) => ({
-            ...order,
-            displayId: `KANNAN-${String(ordersData.length - idx).padStart(3, '0')}`
-          }));
-          setOrders(mappedOrders);
-        }
+      // Fetch Orders
+      const { data: ordersData } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (ordersData) {
+        const mappedOrders = ordersData.map((order, idx) => ({
+          ...order,
+          displayId: `KANNAN-${String(ordersData.length - idx).padStart(3, '0')}`
+        }));
+        setOrders(mappedOrders);
       }
-      setLoading(false);
-    };
+    }
+    setLoading(false);
+    setIsRefreshing(false);
+  };
+
+  useEffect(() => {
     fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatDaysAgo = (dateString: string) => {
@@ -58,7 +64,6 @@ export default function MyRequestsPage() {
     }));
   };
 
-  // FILTER & SEARCH LOGIC
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = order.displayId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All Requests' || order.status === statusFilter;
@@ -77,8 +82,20 @@ export default function MyRequestsPage() {
               Track the requests you've submitted to Kannan. Review status updates, estimated values, and finalize your celebratory selections.
             </p>
           </div>
-          <div className="bg-gray-200/60 px-4 py-2 rounded-full text-xs font-bold text-gray-700 h-fit whitespace-nowrap">
-            {filteredOrders.length} Active Requests
+          
+          {/* NEW: Badge and Refresh Button Group */}
+          <div className="flex items-center gap-3">
+            <div className="bg-gray-200/60 px-4 py-2.5 rounded-full text-xs font-bold text-gray-700 h-fit whitespace-nowrap shadow-sm">
+              {filteredOrders.length} Active Requests
+            </div>
+            <button 
+              onClick={() => fetchData(true)}
+              disabled={isRefreshing}
+              className="bg-white p-2.5 rounded-full border border-gray-200 shadow-sm text-gray-500 hover:text-[#d97706] hover:border-[#d97706] transition-all disabled:opacity-50 cursor-pointer flex-shrink-0"
+              title="Refresh Orders"
+            >
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin text-[#d97706]' : ''}`} />
+            </button>
           </div>
         </div>
 
@@ -91,7 +108,6 @@ export default function MyRequestsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by Request ID (e.g. KANNAN-001)" 
-              /* FIXED: Explicitly added text-black and placeholder colors */
               className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-lg text-sm text-black placeholder:text-gray-400 focus:outline-none focus:border-gray-400 transition-colors"
             />
           </div>
@@ -166,7 +182,6 @@ export default function MyRequestsPage() {
                       <div className="relative pt-2 pb-10 mb-2">
                         <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200"></div>
                         
-                        {/* Dynamic Progress Line */}
                         <div className={`absolute top-4 left-0 h-0.5 bg-[#d97706] transition-all
                           ${order.status === 'Pending' ? 'w-1/3' : order.status === 'Packed' ? 'w-2/3' : 'w-full'}
                         `}></div>
@@ -226,7 +241,7 @@ export default function MyRequestsPage() {
                     
                     <button 
                       onClick={() => toggleOrderDetails(order.id)}
-                      className="flex items-center gap-2 border text-black/50 border-gray-300 hover:border-gray-500 px-4 py-2 rounded-md font-poppins text-xs font-semibold transition-colors"
+                      className="flex items-center gap-2 border text-black/50 border-gray-300 hover:border-gray-500 px-4 py-2 rounded-md font-poppins text-xs font-semibold transition-colors cursor-pointer"
                     >
                       {isExpanded ? (
                         <>Close Details <ChevronUp className="w-4 h-4" /></>

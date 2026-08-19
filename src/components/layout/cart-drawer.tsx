@@ -1,11 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { X, Trash2, Plus, Minus, ShoppingBag, Loader2, CheckCircle2 } from 'lucide-react';
+import { X, Trash2, Plus, Minus, ShoppingBag, Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { createClient } from '@/utils/supabase/client';
 import { AuthModal } from '../auth/auth-modal';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+
+// Define the minimum order threshold
+const MINIMUM_ORDER_VALUE = 3000;
 
 export const CartDrawer = () => {
   const { items, isOpen, toggleCart, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
@@ -24,6 +27,7 @@ export const CartDrawer = () => {
 
   const supabase = createClient();
   const pathname = usePathname();
+  const router = useRouter(); // Added router for navigation
   const isAdminRoute = pathname?.startsWith('/admin');
 
   // Fix hydration mismatch for localStorage
@@ -113,6 +117,9 @@ export const CartDrawer = () => {
 
   if (!isMounted || isAdminRoute) return null;
 
+  const currentTotal = getTotalPrice();
+  const isBelowMinimum = currentTotal < MINIMUM_ORDER_VALUE;
+
   return (
     <>
       {isOpen && (
@@ -152,15 +159,15 @@ export const CartDrawer = () => {
                   onClick={() => {
                     setOrderSuccess(false);
                     toggleCart();
-                    window.location.href = '/orders'; // Redirect to orders
+                    router.push('/orders'); // Route to user's orders page
                   }}
-                  className="w-full bg-[#d97706] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-yellow-600 transition-colors shadow-md"
+                  className="w-full bg-[#d97706] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-yellow-600 transition-colors shadow-md cursor-pointer"
                 >
                   VIEW MY ORDERS
                 </button>
                 <button 
                   onClick={() => { setOrderSuccess(false); toggleCart(); }}
-                  className="w-full bg-[#0f172a] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-slate-800 transition-colors"
+                  className="w-full bg-[#0f172a] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   CONTINUE BROWSING
                 </button>
@@ -198,15 +205,25 @@ export const CartDrawer = () => {
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#d97706] text-white font-poppins font-bold text-xs py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-[#d97706] text-white font-poppins font-bold text-xs py-3 rounded-md hover:bg-yellow-600 transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'SAVE & SUBMIT PRE-ORDER'}
               </button>
             </form>
           ) : items.length === 0 ? (
+            /* --- EMPTY CART STATE --- */
             <div className="h-full flex flex-col items-center justify-center text-gray-400 space-y-4">
-              <ShoppingBag className="w-12 h-12 opacity-20" />
-              <p className="font-poppins text-sm">Your list is currently empty.</p>
+              <ShoppingBag className="w-16 h-16 opacity-20 mb-2" />
+              <p className="font-poppins text-sm text-center">Your list is currently empty.</p>
+              <button 
+                onClick={() => {
+                  toggleCart();
+                  router.push('/products');
+                }}
+                className="mt-4 bg-[#0f172a] hover:bg-[#d97706] text-white font-poppins font-semibold text-xs py-3 px-8 rounded-md transition-colors shadow-sm cursor-pointer"
+              >
+                EXPLORE PRODUCTS
+              </button>
             </div>
           ) : (
             items.map((item) => (
@@ -248,12 +265,26 @@ export const CartDrawer = () => {
           <div className="p-6 bg-white border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
             <div className="flex justify-between items-center mb-4 font-poppins">
               <span className="text-gray-500 text-sm">Estimated Total</span>
-              <span className="font-extrabold text-xl text-black">₹{getTotalPrice()}</span>
+              <span className="font-extrabold text-xl text-black">₹{currentTotal}</span>
             </div>
+
+            {/* --- MINIMUM ORDER WARNING BANNER --- */}
+            {isBelowMinimum && (
+              <div className="mb-4 bg-red-50 border border-red-100 rounded-lg p-3 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                <p className="font-noto text-xs text-red-700 leading-tight">
+                  Minimum order value is <strong>₹{MINIMUM_ORDER_VALUE}</strong>. Please add items worth <strong>₹{MINIMUM_ORDER_VALUE - currentTotal}</strong> more to proceed.
+                </p>
+              </div>
+            )}
+
             <button 
               onClick={handleInitialCheckoutClick}
-              disabled={loading}
-              className="w-full bg-[#d97706] hover:bg-yellow-600 disabled:bg-gray-300 text-white font-poppins font-bold text-sm py-4 rounded-md transition-colors shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+              disabled={loading || isBelowMinimum}
+              className={`w-full font-poppins font-bold text-sm py-4 rounded-md transition-colors flex items-center justify-center gap-2 
+                ${(loading || isBelowMinimum) 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none' 
+                  : 'bg-[#d97706] hover:bg-yellow-600 text-white shadow-lg cursor-pointer'}`}
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'PROCEED TO PRE-ORDER'}
             </button>

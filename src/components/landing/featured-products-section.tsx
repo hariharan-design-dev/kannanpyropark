@@ -1,27 +1,41 @@
 'use client';
 
-import React from 'react';
-import { Heart } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Heart, Loader2, Package } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { createClient } from '@/utils/supabase/client';
 
 export const FeaturedProductsSection = () => {
-
   const addItem = useCartStore((state) => state.addItem);
-  const products = [
-    { id: '1', category: 'FLOWER POTS', title: 'Flower Pots Big', price: 450 },
-    { id: '2', category: 'AERIAL SHOTS', title: 'Sky Shot', price: 850 },
-    { id: '3', category: 'ROCKETS', title: 'Rocket Classic', price: 380 },
-    { id: '4', category: 'GROUND CHAKKARS', title: 'Ground Chakkar', price: 280 },
-  ];
+  const [products, setProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBestsellers = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false }) // Pulls the newest items
+        .limit(4); // Limit to 4 for the landing page
+
+      if (data && !error) {
+        setProducts(data);
+      }
+      setLoading(false);
+    };
+
+    fetchBestsellers();
+  }, []);
 
   const handleAddToList = (prod: any) => {
     addItem({
       id: prod.id,
-      title: prod.title,
+      title: prod.name, // Database uses 'name', Store uses 'title'
       price: prod.price,
       category: prod.category,
     });
-    // Optional: Add a small toast notification here later
   };
 
   return (
@@ -35,33 +49,45 @@ export const FeaturedProductsSection = () => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {products.map((prod) => (
-          <div key={prod.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
-            <div className="space-y-3">
-              <div className="relative w-full h-48 rounded-lg bg-stone-100 flex items-center justify-center">
-                 <span className="text-gray-400 text-sm">Product Image</span>
-                <button className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors">
-                  <Heart className="w-4 h-4" />
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#d97706]" />
+        </div>
+      ) : products.length === 0 ? (
+        <p className="text-center text-gray-500">No products available at the moment.</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {products.map((prod) => (
+            <div key={prod.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow group">
+              <div className="space-y-3">
+                <div className="relative w-full h-48 rounded-lg bg-stone-100 flex items-center justify-center overflow-hidden">
+                  {prod.image_url ? (
+                    <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <Package className="w-10 h-10 text-gray-300" />
+                  )}
+                  <button className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 shadow-sm flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors z-10">
+                    <Heart className="w-4 h-4" />
+                  </button>
+                </div>
+                <div className="space-y-1">
+                  <span className="font-poppins text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{prod.category}</span>
+                  <h3 className="font-serif font-bold text-base text-black line-clamp-1">{prod.name}</h3>
+                </div>
+                <div className="pt-2 font-poppins font-extrabold text-base text-black">₹{prod.price}</div>
+              </div>
+              <div className="pt-4">
+                <button 
+                  onClick={() => handleAddToList(prod)}
+                  className="w-full bg-[#d97706] hover:bg-yellow-600 text-white font-poppins font-semibold text-xs py-3 rounded-md transition-colors shadow-sm cursor-pointer"
+                >
+                  Add to List
                 </button>
               </div>
-              <div className="space-y-1">
-                <span className="font-poppins text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{prod.category}</span>
-                <h3 className="font-serif font-bold text-base text-black">{prod.title}</h3>
-              </div>
-              <div className="pt-2 font-poppins font-extrabold text-base text-black">₹{prod.price}</div>
             </div>
-            <div className="pt-4">
-              <button 
-                onClick={() => handleAddToList(prod)} // <-- Call the store function
-                className="w-full bg-[#d97706] hover:bg-yellow-600 text-white font-poppins font-semibold text-xs py-3 rounded-md transition-colors shadow-sm"
-              >
-                Add to List
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 };

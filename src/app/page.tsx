@@ -1,5 +1,4 @@
 import React from 'react';
-import { LandingHeader } from '@/components/landing/landing-header';
 import { HeroSection } from '@/components/landing/hero-section';
 import { FeatureStrip } from '@/components/landing/feature-strip';
 import { AboutSection } from '@/components/landing/about-section';

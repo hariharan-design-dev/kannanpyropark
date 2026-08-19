@@ -12,7 +12,6 @@ export const GlobalHeader = () => {
   const pathname = usePathname();
   const router = useRouter();
   
-  // NEW: Check if this is an admin route
   const isAdminRoute = pathname.startsWith('/admin');
   const isHomePage = pathname === '/';
   
@@ -43,8 +42,11 @@ export const GlobalHeader = () => {
     router.push('/'); 
   };
 
-  // NEW: If we are on ANY admin page, do not render the customer header at all
+  // If we are on ANY admin page, do not render the customer header at all
   if (isAdminRoute) return null;
+
+  // --- NEW: Admin Detection Logic ---
+  const isAdminUser = session?.user?.email === 'kannanpyropark@gmail.com';
 
   const headerClasses = isHomePage 
     ? `fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isScrolled ? 'bg-[#0f172a] shadow-lg' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'} text-white`
@@ -56,7 +58,6 @@ export const GlobalHeader = () => {
   return (
     <>
       <header className={headerClasses}>
-        {/* ... (Keep the rest of your header code exactly the same) ... */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <span className={`font-serif text-2xl font-bold tracking-tight transition-colors ${logoClasses}`}>
@@ -67,25 +68,47 @@ export const GlobalHeader = () => {
           {!isHomePage && (
             <nav className="hidden md:flex items-center gap-8 font-poppins text-sm font-semibold uppercase tracking-wide">
               <Link href="/products" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/products') ? 'border-[#d97706] text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>Products</Link>
-              <Link href="/orders" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/orders') ? 'border-[#d97706] text-[#d97706]' : 'border-transparent text-gray-500 hover:text-black'}`}>My Requests</Link>
+              {/* Hide Customer Orders link if you are the Admin */}
+              {!isAdminUser && (
+                <Link href="/orders" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/orders') ? 'border-[#d97706] text-[#d97706]' : 'border-transparent text-gray-500 hover:text-black'}`}>My Requests</Link>
+              )}
             </nav>
           )}
 
           <div className="flex items-center gap-5">
-            <button onClick={toggleCart} className={`relative p-1 transition-colors cursor-pointer ${iconClasses}`}>
-              <FileText className="w-5 h-5" />
-              {isMounted && getTotalItems() > 0 && (
-                <span className="absolute -top-1 -right-1 bg-[#d97706] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{getTotalItems()}</span>
-              )}
-            </button>
-
-            {session ? (
-              <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-1">
-                <Link href="/profile" className={`p-1 transition-colors ${iconClasses}`} title="Profile"><User className="w-5 h-5" /></Link>
-                <button onClick={handleLogout} className={`p-1 transition-colors ${iconClasses}`} title="Logout"><LogOut className="w-5 h-5" /></button>
+            {isAdminUser ? (
+              /* --- ADMIN UI --- */
+              <div className="flex items-center gap-4">
+                <Link 
+                  href="/admin/orders" 
+                  className="bg-[#d97706] hover:bg-yellow-600 text-white px-5 py-2.5 rounded-md font-poppins text-xs font-bold transition-colors shadow-sm"
+                >
+                  Return to Dashboard
+                </Link>
+                <div className="h-6 w-px bg-gray-300 mx-1"></div>
+                <button onClick={handleLogout} className={`p-1 transition-colors ${iconClasses}`} title="Logout">
+                  <LogOut className="w-5 h-5" />
+                </button>
               </div>
             ) : (
-              <button onClick={() => setIsAuthModalOpen(true)} className={`p-1 transition-colors ${iconClasses}`} title="Login"><LogIn className="w-5 h-5" /></button>
+              /* --- REGULAR CUSTOMER UI --- */
+              <>
+                <button onClick={toggleCart} className={`relative p-1 transition-colors cursor-pointer ${iconClasses}`}>
+                  <FileText className="w-5 h-5" />
+                  {isMounted && getTotalItems() > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-[#d97706] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{getTotalItems()}</span>
+                  )}
+                </button>
+
+                {session ? (
+                  <div className="flex items-center gap-2 border-l border-gray-300 pl-4 ml-1">
+                    <Link href="/profile" className={`p-1 transition-colors ${iconClasses}`} title="Profile"><User className="w-5 h-5" /></Link>
+                    <button onClick={handleLogout} className={`p-1 transition-colors ${iconClasses}`} title="Logout"><LogOut className="w-5 h-5" /></button>
+                  </div>
+                ) : (
+                  <button onClick={() => setIsAuthModalOpen(true)} className={`p-1 transition-colors ${iconClasses}`} title="Login"><LogIn className="w-5 h-5" /></button>
+                )}
+              </>
             )}
           </div>
         </div>
