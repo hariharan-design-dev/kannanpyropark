@@ -10,8 +10,8 @@ export default function LandingPage() {
   return (
     <main className="min-h-screen flex flex-col bg-white text-black overflow-x-hidden font-noto">
       <HeroSection />
-      <FeatureStrip />
-      <AboutSection />
+      {/* <FeatureStrip /> */}
+      {/* <AboutSection /> */} {/* Temporarily removed*/}
       <CategoriesSection />
       <FeaturedProductsSection />
       <LandingFooter />

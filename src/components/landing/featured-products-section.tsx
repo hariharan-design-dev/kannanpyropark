@@ -45,10 +45,10 @@ export const FeaturedProductsSection = () => {
     <section id="products" className="py-24 bg-white border-t border-gray-100 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto w-full">
       <div className="text-center max-w-2xl mx-auto space-y-3 mb-14">
         <span className="font-poppins text-xs font-bold text-[#d97706] uppercase tracking-widest block">
-          BESTSELLING
+          NEW ARRIVALS
         </span>
         <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-black leading-tight">
-          Customer Favorites
+          Fresh Stock
         </h2>
       </div>
 
