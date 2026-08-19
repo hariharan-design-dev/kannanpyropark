@@ -61,7 +61,7 @@ export const GlobalHeader = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 group">
             <span className={`font-serif text-2xl font-bold tracking-tight transition-colors ${logoClasses}`}>
-              kannan pyro parks
+              kannan pyro park
             </span>
           </Link>
 
