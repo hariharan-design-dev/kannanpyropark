@@ -6,6 +6,18 @@ import { Search, Package, Plus, Edit2, RefreshCw, X, Image as ImageIcon, Eye, Ey
 import { createClient } from '@/utils/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
 
+const InstagramIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
+  </svg>
+);
+
+const YoutubeIcon = ({ className }: { className?: string }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"></path><path d="m10 15 5-3-5-3z"></path>
+  </svg>
+);
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>(['All Categories']);
@@ -21,16 +33,23 @@ export default function AdminProductsPage() {
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [saving, setSaving] = useState(false);
   
-  // State for file uploads
+  // State for file uploads (Main + Gallery)
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
   
   // Form Fields
   const [formData, setFormData] = useState({
     name: '',
     category: '',
     price: '',
+    description: '',
+    youtube_url: '',
+    instagram_url: '',
     image_url: '', 
+    gallery_images: [] as string[],
     is_active: true
   });
 
@@ -81,26 +100,38 @@ export default function AdminProductsPage() {
 
   const openAddModal = () => {
     setEditingProduct(null);
-    setFormData({ name: '', category: '', price: '', image_url: '', is_active: true });
+    setFormData({ 
+      name: '', category: '', price: '', description: '', youtube_url: '', instagram_url: '', 
+      image_url: '', gallery_images: [], is_active: true 
+    });
     setImageFile(null);
     setImagePreview('');
+    setGalleryFiles([]);
+    setGalleryPreviews([]);
     setIsModalOpen(true);
   };
 
   const openEditModal = (product: any) => {
     setEditingProduct(product);
     setFormData({
-      name: product.name,
-      category: product.category,
-      price: product.price.toString(),
+      name: product.name || '',
+      category: product.category || '',
+      price: product.price ? product.price.toString() : '',
+      description: product.description || '',
+      youtube_url: product.youtube_url || '',
+      instagram_url: product.instagram_url || '',
       image_url: product.image_url || '',
+      gallery_images: product.gallery_images || [],
       is_active: product.is_active
     });
     setImageFile(null);
     setImagePreview(product.image_url || '');
+    setGalleryFiles([]);
+    setGalleryPreviews([]); // Existing URLs are tracked in formData.gallery_images
     setIsModalOpen(true);
   };
 
+  // Main Image Handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -110,76 +141,102 @@ export default function AdminProductsPage() {
     }
   };
 
+  // Gallery Images Handler
+  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const filesArray = Array.from(e.target.files);
+      setGalleryFiles(prev => [...prev, ...filesArray]);
+      
+      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
+      setGalleryPreviews(prev => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removeGalleryFile = (index: number) => {
+    setGalleryFiles(prev => prev.filter((_, i) => i !== index));
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeExistingGalleryImage = (urlToRemove: string) => {
+    setFormData(prev => ({
+      ...prev,
+      gallery_images: prev.gallery_images.filter(url => url !== urlToRemove)
+    }));
+  };
+
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     let finalImageUrl = formData.image_url;
+    let finalGalleryUrls = [...formData.gallery_images];
 
-    // Bucket Upload Logic
+    // 1. Upload Main Image
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop();
-      const uniqueFileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const uniqueFileName = `main-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(uniqueFileName, imageFile);
 
-      console.log(uploadData);
-
       if (uploadError) {
-        alert('Image upload failed: ' + uploadError.message);
+        alert('Main image upload failed: ' + uploadError.message);
         setSaving(false);
         return;
       }
 
-      const { data: publicUrlData } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(uniqueFileName);
-
-    console.log(publicUrlData);
-        
+      const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(uniqueFileName);
       finalImageUrl = publicUrlData.publicUrl;
     }
 
-    if(editingProduct && editingProduct.image_url && editingProduct.image_url != finalImageUrl) {
-        if(editingProduct.image_url.includes('supabase.co/storage')) {
-            const oldFileName = editingProduct.image_url.split('/').pop();
-            if(oldFileName) {
-                await supabase.storage.from('product-images').remove([oldFileName]);
-            }
+    // 2. Upload Gallery Images
+    if (galleryFiles.length > 0) {
+      for (const file of galleryFiles) {
+        const fileExt = file.name.split('.').pop();
+        const uniqueFileName = `gallery-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('product-images')
+          .upload(uniqueFileName, file);
+
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage.from('product-images').getPublicUrl(uniqueFileName);
+          finalGalleryUrls.push(publicUrlData.publicUrl);
         }
+      }
+    }
+
+    // Cleanup old main image if replaced
+    if (editingProduct && editingProduct.image_url && editingProduct.image_url !== finalImageUrl) {
+      if (editingProduct.image_url.includes('supabase.co/storage')) {
+        const oldFileName = editingProduct.image_url.split('/').pop();
+        if (oldFileName) await supabase.storage.from('product-images').remove([oldFileName]);
+      }
     }
 
     const productPayload = {
       name: formData.name,
       category: formData.category,
       price: parseFloat(formData.price),
+      description: formData.description,
+      youtube_url: formData.youtube_url,
+      instagram_url: formData.instagram_url,
       image_url: finalImageUrl,
+      gallery_images: finalGalleryUrls,
       is_active: formData.is_active
     };
 
     let error, data;
 
-    // --- IMPROVED SAVE LOGIC ---
-    // We use .select() to get the saved row back immediately
     if (editingProduct) {
-      // Update
       const { data: updateData, error: updateError } = await supabase
-        .from('products')
-        .update(productPayload)
-        .eq('id', editingProduct.id)
-        .select();
-      error = updateError;
-      data = updateData;
+        .from('products').update(productPayload).eq('id', editingProduct.id).select();
+      error = updateError; data = updateData;
     } else {
-      // Insert
       const { data: insertData, error: insertError } = await supabase
-        .from('products')
-        .insert([productPayload])
-        .select();
-      error = insertError;
-      data = insertData;
+        .from('products').insert([productPayload]).select();
+      error = insertError; data = insertData;
     }
 
     setSaving(false);
@@ -187,28 +244,60 @@ export default function AdminProductsPage() {
     if (error) {
       alert('Failed to save product: ' + error.message);
     } else if (data && data.length > 0) {
-      // --- INSTANT UI UPDATE ---
       const savedProduct = data[0];
-      
       if (editingProduct) {
-        // Replace the old product in the local state
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? savedProduct : p));
       } else {
-        // Add the new product to the front of the local list
         setProducts(prev => [savedProduct, ...prev]);
-        
-        // Ensure new categories are added to the filter dropdown
         if (savedProduct.category && !categories.includes(savedProduct.category)) {
           setCategories(prev => [...prev, savedProduct.category].sort());
         }
       }
+      setIsModalOpen(false);
+    }
+  };
 
-      // --- INSTANT MODAL CLOSE ---
-      setIsModalOpen(false);
+  const handleDeleteProduct = async () => {
+    if (!productToDelete) return;
+    setDeleting(true);
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return;
+
+    // 1. CLEANUP STORAGE BUCKET (Main + Gallery)
+    const filesToDelete: string[] = [];
+    
+    if (productToDelete.image_url?.includes('supabase.co/storage')) {
+      const fileName = productToDelete.image_url.split('/').pop();
+      if (fileName) filesToDelete.push(fileName);
+    }
+
+    if (productToDelete.gallery_images?.length > 0) {
+      productToDelete.gallery_images.forEach((url: string) => {
+        if (url.includes('supabase.co/storage')) {
+          const fileName = url.split('/').pop();
+          if (fileName) filesToDelete.push(fileName);
+        }
+      });
+    }
+
+    if (filesToDelete.length > 0) {
+      await supabase.storage.from('product-images').remove(filesToDelete);
+    }
+
+    // 2. DELETE FROM DATABASE
+    const { error: dbError } = await supabase.from('products').delete().eq('id', productToDelete.id);
+
+    setDeleting(false);
+
+    if (dbError) {
+      alert('Failed to delete product: ' + dbError.message);
     } else {
-      // Fallback if PostgREST didn't return data (rare latency issue)
-      fetchProducts(true);
-      setIsModalOpen(false);
+      setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
+      setIsDeleteModalOpen(false);
+      setIsModalOpen(false); 
+      setProductToDelete(null);
+      setEditingProduct(null);
     }
   };
 
@@ -218,65 +307,13 @@ export default function AdminProductsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleDeleteProduct = async () => {
-    if (!productToDelete) return;
-    setDeleting(true);
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      router.push('/admin-login');
-      return;
-    }
-
-    // 1. CLEANUP STORAGE BUCKET
-    // If the product has an image hosted in OUR Supabase bucket...
-    if (productToDelete.image_url && productToDelete.image_url.includes('supabase.co/storage')) {
-      // Extract the filename from the end of the URL
-      const fileName = productToDelete.image_url.split('/').pop();
-      if (fileName) {
-        // PERMANENTLY DELETE THE OLD FILE
-        const { error: storageError } = await supabase.storage
-          .from('product-images')
-          .remove([fileName]);
-        
-        if (storageError) {
-          console.error('Storage cleanup failed during delete:', storageError.message);
-          // We continue anyway; database deletion is the priority.
-        }
-      }
-    }
-
-    // 2. DELETE FROM DATABASE
-    const { error: dbError } = await supabase
-      .from('products')
-      .delete()
-      .eq('id', productToDelete.id);
-
-    setDeleting(false);
-
-    if (dbError) {
-      alert('Failed to delete product from database: ' + dbError.message);
-    } else {
-      // 3. INSTANT UI UPDATE
-      // Remove the product from the local list
-      setProducts(prev => prev.filter(p => p.id !== productToDelete.id));
-      
-      // Close all modals
-      setIsDeleteModalOpen(false);
-      setIsModalOpen(false); // Close the Edit modal if it was open
-      
-      // Clear deletion targets
-      setProductToDelete(null);
-      setEditingProduct(null);
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-50 font-noto pb-20">
       <AdminHeader />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
+        {/* Header Area */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
           <div>
             <h1 className="font-serif text-3xl font-bold text-gray-900">Product Catalog</h1>
@@ -345,6 +382,14 @@ export default function AdminProductsPage() {
                   ) : (
                     <ImageIcon className="w-10 h-10 text-slate-300" />
                   )}
+                  
+                  {/* Gallery Indicator */}
+                  {product.gallery_images?.length > 0 && (
+                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded backdrop-blur-sm flex items-center gap-1">
+                      <ImageIcon className="w-3 h-3" /> +{product.gallery_images.length}
+                    </div>
+                  )}
+
                   <div className="absolute top-3 left-3">
                     <span className={`text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shadow-sm backdrop-blur-md
                       ${product.is_active ? 'bg-green-500/90 text-white' : 'bg-gray-500/90 text-white'}`}
@@ -356,7 +401,7 @@ export default function AdminProductsPage() {
 
                 <div className="p-4 flex-1 flex flex-col">
                   <span className="font-poppins text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{product.category}</span>
-                  <h3 className="font-serif font-bold text-gray-900 leading-tight mb-2 flex-1">{product.name}</h3>
+                  <h3 className="font-serif font-bold text-gray-900 leading-tight mb-2 flex-1 line-clamp-1">{product.name}</h3>
                   <div className="font-poppins font-bold text-blue-700 text-lg mb-4">₹{product.price}</div>
                   
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
@@ -385,7 +430,7 @@ export default function AdminProductsPage() {
       {/* --- ADD/EDIT PRODUCT MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
             
             <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center shrink-0">
               <h2 className="font-serif text-xl font-bold">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
@@ -394,88 +439,159 @@ export default function AdminProductsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-6 font-noto space-y-6">
+            <form onSubmit={handleSaveProduct} className="flex-1 overflow-y-auto p-6 font-noto space-y-8">
               
-              <div className="space-y-2">
-                <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Product Name *</label>
-                <input 
-                  type="text" required
-                  value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
-                  placeholder="e.g. Premium Gold Sparklers 10cm"
-                  className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              {/* Basic Info Section */}
+              <div className="space-y-4">
+                <h3 className="font-poppins text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">Basic Information</h3>
+                
                 <div className="space-y-2">
-                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Category *</label>
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Product Name *</label>
                   <input 
                     type="text" required
-                    value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}
-                    placeholder="e.g. Sparklers"
+                    value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})}
+                    placeholder="e.g. Premium Gold Sparklers 10cm"
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
-                    list="category-suggestions"
                   />
-                  <datalist id="category-suggestions">
-                    {categories.filter(c => c !== 'All Categories').map((c, i) => <option key={i} value={c} />)}
-                  </datalist>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Category *</label>
+                    <input 
+                      type="text" required
+                      value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}
+                      placeholder="e.g. Sparklers"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
+                      list="category-suggestions"
+                    />
+                    <datalist id="category-suggestions">
+                      {categories.filter(c => c !== 'All Categories').map((c, i) => <option key={i} value={c} />)}
+                    </datalist>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Price (₹) *</label>
+                    <input 
+                      type="number" required min="0" step="0.01"
+                      value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})}
+                      placeholder="0.00"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Price (₹) *</label>
-                  <input 
-                    type="number" required min="0" step="0.01"
-                    value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})}
-                    placeholder="0.00"
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Description</label>
+                  <textarea 
+                    value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}
+                    placeholder="Describe the product effects, duration, and details..."
+                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none min-h-[100px] resize-y"
                   />
                 </div>
               </div>
 
-              {/* Dual Image Input Section */}
-              <div className="space-y-4 border border-gray-200 rounded-xl p-4 bg-gray-50/50">
-                <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Product Image</label>
+              {/* Media Section */}
+              <div className="space-y-6">
+                <h3 className="font-poppins text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">Media & Social</h3>
                 
-                {/* Visual Preview */}
-                {(imagePreview || formData.image_url) && (
-                  <div className="w-full h-32 bg-slate-100 rounded-lg overflow-hidden border border-gray-200 mb-3 relative">
-                    <img src={imagePreview || formData.image_url} alt="Preview" className="w-full h-full object-contain" />
-                  </div>
-                )}
-
-                <div className="space-y-3">
-                  {/* Upload Local File */}
-                  <label className="flex items-center justify-center w-full bg-white border border-dashed border-gray-300 rounded-lg px-4 py-4 hover:bg-gray-50 transition-colors cursor-pointer group">
-                    <div className="flex flex-col items-center gap-1">
-                      <UploadCloud className="w-6 h-6 text-gray-400 group-hover:text-blue-500" />
-                      <span className="text-sm font-semibold text-gray-600">Upload from Device</span>
-                      <span className="text-[10px] text-gray-400">JPG, PNG, WEBP</span>
+                {/* Main Thumbnail */}
+                <div className="space-y-2">
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Primary Thumbnail (Required)</label>
+                  <div className="flex gap-4 items-start">
+                    {(imagePreview || formData.image_url) ? (
+                      <div className="w-24 h-24 shrink-0 bg-slate-100 rounded-lg overflow-hidden border border-gray-200">
+                        <img src={imagePreview || formData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-24 shrink-0 bg-slate-50 border border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-400">
+                        <ImageIcon className="w-6 h-6 mb-1"/>
+                        <span className="text-[9px]">Main Image</span>
+                      </div>
+                    )}
+                    <div className="flex-1 space-y-2">
+                       <label className="flex items-center justify-center w-full bg-white border border-gray-300 rounded-lg px-4 py-2 hover:bg-gray-50 transition-colors cursor-pointer group">
+                        <span className="text-sm font-semibold text-gray-600 flex items-center gap-2"><UploadCloud className="w-4 h-4" /> Select Main Image</span>
+                        <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+                      </label>
+                      <input 
+                        type="url" 
+                        value={formData.image_url} 
+                        onChange={e => {
+                          setFormData({...formData, image_url: e.target.value});
+                          setImageFile(null); setImagePreview('');
+                        }}
+                        placeholder="Or paste main image URL..."
+                        className="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-blue-500 text-black outline-none"
+                      />
                     </div>
-                    <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                  </label>
-
-                  <div className="flex items-center gap-4">
-                    <div className="h-px bg-gray-200 flex-1"></div>
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">OR</span>
-                    <div className="h-px bg-gray-200 flex-1"></div>
                   </div>
-
-                  {/* Paste Web URL */}
-                  <input 
-                    type="url" 
-                    value={formData.image_url} 
-                    onChange={e => {
-                      setFormData({...formData, image_url: e.target.value});
-                      setImageFile(null); // Clear local file if they paste a URL
-                      setImagePreview('');
-                    }}
-                    placeholder="Paste a web URL..."
-                    className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
-                  />
                 </div>
+
+                {/* Additional Gallery Images */}
+                <div className="space-y-2">
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Additional Gallery Images</label>
+                  
+                  {/* Previews of existing and new gallery images */}
+                  <div className="flex flex-wrap gap-3 mb-3">
+                    {/* Existing DB Images */}
+                    {formData.gallery_images.map((url, idx) => (
+                      <div key={`existing-${idx}`} className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-gray-200 group">
+                        <img src={url} alt={`Gallery ${idx}`} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeExistingGalleryImage(url)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    {/* New Uploading Images */}
+                    {galleryPreviews.map((url, idx) => (
+                      <div key={`new-${idx}`} className="relative w-20 h-20 bg-slate-100 rounded-lg overflow-hidden border border-gray-200 border-dashed group">
+                        <img src={url} alt={`New Gallery ${idx}`} className="w-full h-full object-cover opacity-70" />
+                        <button type="button" onClick={() => removeGalleryFile(idx)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                    
+                    {/* Add More Button */}
+                    <label className="w-20 h-20 bg-gray-50 border border-dashed border-gray-300 hover:border-blue-400 hover:bg-blue-50 rounded-lg flex flex-col items-center justify-center text-gray-400 hover:text-blue-500 cursor-pointer transition-colors">
+                      <Plus className="w-6 h-6 mb-1"/>
+                      <span className="text-[9px] font-semibold text-center leading-tight">Add<br/>Photos</span>
+                      <input type="file" multiple className="hidden" accept="image/*" onChange={handleGalleryChange} />
+                    </label>
+                  </div>
+                </div>
+
+                {/* Social Links */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <YoutubeIcon className="w-3.5 h-3.5"/> YouTube Link
+                    </label>
+                    <input 
+                      type="url" 
+                      value={formData.youtube_url} onChange={e => setFormData({...formData, youtube_url: e.target.value})}
+                      placeholder="https://youtube.com/watch?v=..."
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 text-black outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <InstagramIcon className="w-3.5 h-3.5"/> Instagram Link
+                    </label>
+                    <input 
+                      type="url" 
+                      value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})}
+                      placeholder="https://instagram.com/p/..."
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 text-black outline-none"
+                    />
+                  </div>
+                </div>
+
               </div>
 
-              <div className="pt-2">
+              {/* Visibility Toggle */}
+              <div className="pt-2 border-t border-gray-100">
                 <label className="flex items-center gap-3 cursor-pointer p-4 border border-gray-200 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                   <div className="relative">
                     <input 
@@ -497,7 +613,7 @@ export default function AdminProductsPage() {
               {/* Modal Actions Footer */}
               <div className="pt-6 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 
-                {/* --- NEW: Danger Zone (Visible only during edit) --- */}
+                {/* Danger Zone */}
                 {editingProduct ? (
                   <button 
                     type="button" 
@@ -510,10 +626,10 @@ export default function AdminProductsPage() {
                     <Trash2 className="w-4 h-4"/> DELETE PRODUCT
                   </button>
                 ) : (
-                  <div /> /* Empty spacer for layout alignment during Add */
+                  <div />
                 )}
 
-                {/* Standard Actions (Aligned Right) */}
+                {/* Standard Actions */}
                 <div className="flex gap-3 justify-end w-full sm:w-auto">
                     <button 
                       type="button" 
@@ -541,28 +657,21 @@ export default function AdminProductsPage() {
         </div>
       )}
 
-      {/* --- NEW: DELETE CONFIRMATION MODAL --- */}
+      {/* --- DELETE CONFIRMATION MODAL --- */}
       {isDeleteModalOpen && productToDelete && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 flex flex-col items-center text-center animate-in zoom-in-95 duration-200">
-            
             <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6 border-4 border-red-50">
               <AlertTriangle className="w-8 h-8" />
             </div>
-            
             <h2 className="font-serif text-2xl font-bold text-gray-900 mb-2">Delete Product Permanently?</h2>
-            
             <p className="font-noto text-sm text-gray-600 leading-relaxed mb-8">
-              Are you sure you want to delete <span className="font-bold text-gray-900">"{productToDelete.name}"</span>? This action cannot be undone and the stored image will be permanently removed from the bucket.
+              Are you sure you want to delete <span className="font-bold text-gray-900">"{productToDelete.name}"</span>? This action cannot be undone and all associated images will be permanently removed from the bucket.
             </p>
-            
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
               <button 
                 type="button" 
-                onClick={() => {
-                  setIsDeleteModalOpen(false);
-                  setProductToDelete(null);
-                }}
+                onClick={() => { setIsDeleteModalOpen(false); setProductToDelete(null); }}
                 disabled={deleting}
                 className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-poppins font-semibold text-sm px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -574,14 +683,9 @@ export default function AdminProductsPage() {
                 disabled={deleting}
                 className="w-full bg-red-600 hover:bg-red-700 text-white font-poppins font-bold text-sm px-6 py-3 rounded-lg transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                {deleting ? (
-                    <><Loader2 className="w-4 h-4 animate-spin"/> Deleting...</>
-                ) : (
-                    'Yes, Delete permanently'
-                )}
+                {deleting ? <><Loader2 className="w-4 h-4 animate-spin"/> Deleting...</> : 'Yes, Delete permanently'}
               </button>
             </div>
-
           </div>
         </div>
       )}
