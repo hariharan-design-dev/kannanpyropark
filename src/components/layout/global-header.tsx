@@ -45,7 +45,7 @@ export const GlobalHeader = () => {
   // If we are on ANY admin page, do not render the customer header at all
   if (isAdminRoute) return null;
 
-  // --- NEW: Admin Detection Logic ---
+  // Admin Check
   const isAdminUser = session?.user?.email === 'kannanpyropark@gmail.com';
 
   const headerClasses = isHomePage 
@@ -68,8 +68,9 @@ export const GlobalHeader = () => {
           {!isHomePage && (
             <nav className="hidden md:flex items-center gap-8 font-poppins text-sm font-semibold uppercase tracking-wide">
               <Link href="/products" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/products') ? 'border-[#d97706] text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>Products</Link>
-              {/* Hide Customer Orders link if you are the Admin */}
-              {!isAdminUser && (
+              
+              {/* --- ONLY show My Requests if the user is logged in AND is NOT the admin --- */}
+              {session && !isAdminUser && (
                 <Link href="/orders" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/orders') ? 'border-[#d97706] text-[#d97706]' : 'border-transparent text-gray-500 hover:text-black'}`}>My Requests</Link>
               )}
             </nav>

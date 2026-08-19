@@ -4,10 +4,11 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Search, PackageOpen, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation'; // <-- Added useRouter
 
 function ProductsContent() {
   const searchParams = useSearchParams();
+  const router = useRouter(); // <-- Initialize router
   const urlCategory = searchParams.get('category') || 'All Categories';
 
   const [products, setProducts] = useState<any[]>([]);
@@ -21,7 +22,6 @@ function ProductsContent() {
   const supabase = createClient();
   const addItem = useCartStore((state) => state.addItem);
 
-  // Update selected category if the URL changes while on the page
   useEffect(() => {
     const currentParam = searchParams.get('category');
     if (currentParam) {
@@ -29,7 +29,6 @@ function ProductsContent() {
     }
   }, [searchParams]);
 
-  // The fetch logic is now a reusable function
   const fetchActiveProducts = async (isManualRefresh = false) => {
     if (isManualRefresh) setIsRefreshing(true);
 
@@ -41,7 +40,6 @@ function ProductsContent() {
 
     if (data && !error) {
       setProducts(data);
-      
       const uniqueCategories = Array.from(new Set(data.map(p => p.category)));
       setCategories(['All Categories', ...uniqueCategories]);
     }
@@ -50,13 +48,13 @@ function ProductsContent() {
     setIsRefreshing(false);
   };
 
-  // Initial load
   useEffect(() => {
     fetchActiveProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAddToList = (prod: any) => {
+  const handleAddToList = (e: React.MouseEvent, prod: any) => {
+    e.stopPropagation(); // <-- Stops the card click from triggering navigation
     addItem({
       id: prod.id,
       title: prod.name, 
@@ -83,7 +81,6 @@ function ProductsContent() {
           </p>
         </div>
         
-        {/* Updated Badge & Refresh Action Area */}
         <div className="flex items-center gap-3">
           <div className="bg-gray-200/60 px-4 py-2.5 rounded-full text-xs font-bold text-gray-700 h-fit whitespace-nowrap shadow-sm">
             {filteredProducts.length} Products Available
@@ -146,13 +143,15 @@ function ProductsContent() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredProducts.map((prod) => (
-            <div key={prod.id} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div 
+              key={prod.id} 
+              onClick={() => router.push(`/products/${prod.id}`)} // <-- Whole card is now cleanly clickable
+              className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[#d97706] transition-all cursor-pointer group"
+            >
               <div className="space-y-3">
-                
-                {/* Image Integration */}
                 <div className="relative w-full h-48 rounded-lg bg-stone-100 flex items-center justify-center overflow-hidden">
                   {prod.image_url ? (
-                    <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover" />
+                    <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <span className="text-gray-400 text-xs">No Image</span>
                   )}
@@ -162,7 +161,7 @@ function ProductsContent() {
                   <span className="font-poppins text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
                     {prod.category}
                   </span>
-                  <h3 className="font-serif font-bold text-base text-black line-clamp-2 leading-tight">
+                  <h3 className="font-serif font-bold text-base text-black line-clamp-2 leading-tight group-hover:text-[#d97706] transition-colors">
                     {prod.name}
                   </h3>
                 </div>
@@ -174,7 +173,7 @@ function ProductsContent() {
 
               <div className="pt-5">
                 <button 
-                  onClick={() => handleAddToList(prod)}
+                  onClick={(e) => handleAddToList(e, prod)} // <-- e.stopPropagation() prevents card click from firing
                   className="w-full bg-[#0f172a] hover:bg-[#d97706] text-white font-poppins font-semibold text-xs py-3.5 rounded-md transition-colors shadow-sm cursor-pointer"
                 >
                   ADD TO LIST

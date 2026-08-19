@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Package, Plus, Edit2, RefreshCw, X, Image as ImageIcon, Eye, EyeOff, UploadCloud, Loader2, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Package, Plus, Edit2, RefreshCw, X, Image as ImageIcon, Eye, EyeOff, UploadCloud, Loader2, Trash2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
 
@@ -208,10 +208,30 @@ export default function AdminProductsPage() {
     }
 
     // Cleanup old main image if replaced
-    if (editingProduct && editingProduct.image_url && editingProduct.image_url !== finalImageUrl) {
-      if (editingProduct.image_url.includes('supabase.co/storage')) {
-        const oldFileName = editingProduct.image_url.split('/').pop();
-        if (oldFileName) await supabase.storage.from('product-images').remove([oldFileName]);
+    if (editingProduct) {
+      // Clean up old main image if replaced
+      if (editingProduct.image_url && editingProduct.image_url !== finalImageUrl) {
+        if (editingProduct.image_url.includes('supabase.co/storage')) {
+          const oldFileName = editingProduct.image_url.split('/').pop();
+          if (oldFileName) await supabase.storage.from('product-images').remove([oldFileName]);
+        }
+      }
+
+      // Clean up removed gallery images
+      const originalGallery = editingProduct.gallery_images || [];
+      const removedImages = originalGallery.filter((oldUrl: string) => !finalGalleryUrls.includes(oldUrl));
+      
+      if (removedImages.length > 0) {
+        const filesToRemove: string[] = [];
+        removedImages.forEach((url: string) => {
+          if (url.includes('supabase.co/storage')) {
+            const fileName = url.split('/').pop();
+            if (fileName) filesToRemove.push(fileName);
+          }
+        });
+        if (filesToRemove.length > 0) {
+          await supabase.storage.from('product-images').remove(filesToRemove);
+        }
       }
     }
 
@@ -405,6 +425,13 @@ export default function AdminProductsPage() {
                   <div className="font-poppins font-bold text-blue-700 text-lg mb-4">₹{product.price}</div>
                   
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                    <button 
+                      onClick={() => window.open(`/products/${product.id}`, '_blank')}
+                      className="bg-slate-50 hover:bg-slate-100 text-slate-700 p-2 rounded-md font-poppins text-xs font-bold transition-colors flex items-center justify-center border border-slate-200 cursor-pointer"
+                      title="Preview Customer Page"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </button>
                     <button 
                       onClick={() => handleToggleActive(product.id, product.is_active)}
                       className={`flex-1 py-2 rounded-md font-poppins text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer
