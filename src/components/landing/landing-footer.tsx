@@ -76,15 +76,18 @@ export const LandingFooter = () => {
             <ul className="space-y-4 font-noto text-sm text-gray-400">
               <li className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-[#d97706] shrink-0 mt-0.5" />
-                <span>123 Factory Road, Sivakasi, Tamil Nadu, 626123, India</span>
+                <a href='https://share.google/EQi30wiQxqJt7ZCkj' target='_blank'>123 Factory Road, Sivakasi, Tamil Nadu, 626123, India</a>
               </li>
               <li className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-[#d97706] shrink-0" />
-                <span>+91 98765 43210</span>
+                <span>
+                  <div>+91 81900 78401</div>
+                  <div>+91 97877 71865</div>
+                </span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-[#d97706] shrink-0" />
-                <span>sales@kannanpyropark.com</span>
+                <span>kannanpyropark@gmail.com</span>
               </li>
             </ul>
           </div>

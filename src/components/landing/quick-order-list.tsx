@@ -7,12 +7,12 @@ import { useCartStore } from '@/store/cartStore';
 
 // HARDCODED CATEGORY ORDER (For future dynamic update, fetch this from a DB table)
 const CUSTOM_CATEGORY_ORDER = [
-  'One sound', 
-  'Bigili', 
-  'Flower pot', 
-  'Ground chakra', 
-  'Peacock special', 
-  'Rocket', 
+  'One Sound Crackers', // Updated to match DB
+  'Bijili',             // Updated to match DB
+  'Flower Pots',        // Updated to match DB
+  'Ground Chakkars',    // Updated to match DB
+  'Peacock Special', 
+  'Rockets',            // Updated to match DB
   'Smoke', 
   'Blast and Crash', 
   'Visiling', 
@@ -58,7 +58,7 @@ export const QuickOrderList = () => {
           if (indexB !== -1) return 1;  // Only B in list, it goes first
           return a.localeCompare(b);    // Neither in list, sort alphabetically at the end
         });
-
+        console.log(sortedCategories);
         setCategories(sortedCategories);
       }
       setLoading(false);
@@ -248,7 +248,7 @@ export const QuickOrderList = () => {
               onChange={(e) => scrollToCategory(e.target.value)}
               className="flex-1 sm:w-48 bg-gray-50 border border-gray-300 text-gray-900 text-[10px] sm:text-sm rounded-lg focus:ring-[#d97706] focus:border-[#d97706] block p-2 sm:p-2.5 outline-none cursor-pointer font-semibold"
             >
-              <option value="" disabled>Jump to...</option>
+              <option value="" disabled>Categories</option>
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
@@ -258,7 +258,7 @@ export const QuickOrderList = () => {
               onClick={toggleCart}
               className="flex-1 sm:flex-none bg-[#0f172a] hover:bg-[#d97706] text-white font-poppins font-bold text-[10px] sm:text-sm px-4 sm:px-8 py-2 sm:py-3 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md cursor-pointer"
             >
-              <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" /> CHECKOUT
+              <ShoppingBag className="w-3 h-3 sm:w-4 sm:h-4" /> NEXT
             </button>
           </div>
 

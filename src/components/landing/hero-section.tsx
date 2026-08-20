@@ -31,12 +31,12 @@ export const HeroSection = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 font-poppins text-sm font-semibold">
-          <Link 
+          {/* <Link 
             href="/products" 
             className="bg-[#d97706] hover:bg-yellow-600 text-white px-8 py-4 transition-colors rounded-sm tracking-wide"
           >
             EXPLORE PRODUCTS
-          </Link>
+          </Link> */}
           <Link 
             href="/orders" 
             className="w-full sm:w-auto border border-white hover:bg-white hover:text-black text-white px-8 py-4 transition-colors rounded-sm tracking-wide"
