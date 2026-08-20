@@ -5,6 +5,7 @@ import { AboutSection } from '@/components/landing/about-section';
 import { CategoriesSection } from '@/components/landing/categories-section';
 import { FeaturedProductsSection } from '@/components/landing/featured-products-section';
 import { LandingFooter } from '@/components/landing/landing-footer'; // <-- Add Import
+import { QuickOrderList } from '@/components/landing/quick-order-list';
 
 export default function LandingPage() {
   return (
@@ -12,8 +13,9 @@ export default function LandingPage() {
       <HeroSection />
       {/* <FeatureStrip /> */}
       {/* <AboutSection /> */} {/* Temporarily removed*/}
-      <CategoriesSection />
-      <FeaturedProductsSection />
+      {/* <CategoriesSection />
+      <FeaturedProductsSection /> */}
+      <QuickOrderList />
       <LandingFooter />
     </main>
   );
