@@ -9,6 +9,7 @@ export interface CartItem {
   price: number;
   category: string;
   quantity: number;
+  unit: string;
 }
 
 // Define what actions our store can perform

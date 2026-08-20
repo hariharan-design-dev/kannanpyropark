@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Heart, Loader2, Package } from 'lucide-react';
+import { Loader2, Package } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation'; // <-- Added router
@@ -10,7 +10,7 @@ export const FeaturedProductsSection = () => {
   const addItem = useCartStore((state) => state.addItem);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter(); // <-- Initialize router
+  const router = useRouter(); 
 
   useEffect(() => {
     const fetchBestsellers = async () => {
@@ -38,6 +38,7 @@ export const FeaturedProductsSection = () => {
       title: prod.name,
       price: prod.price,
       category: prod.category,
+      unit: prod.unit_type || 'piece',
     });
   };
 
@@ -63,7 +64,7 @@ export const FeaturedProductsSection = () => {
           {products.map((prod) => (
             <div 
               key={prod.id} 
-              onClick={() => router.push(`/products/${prod.id}`)} // <-- Whole card routes to details page
+              onClick={() => router.push(`/products/${prod.id}`)}
               className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[#d97706] transition-all cursor-pointer group"
             >
               <div className="space-y-3">
@@ -78,7 +79,9 @@ export const FeaturedProductsSection = () => {
                   <span className="font-poppins text-[10px] font-bold text-gray-400 uppercase tracking-wider block">{prod.category}</span>
                   <h3 className="font-serif font-bold text-base text-black line-clamp-1 group-hover:text-[#d97706] transition-colors">{prod.name}</h3>
                 </div>
-                <div className="pt-2 font-poppins font-extrabold text-base text-black">₹{prod.price}</div>
+                <div className="pt-2 font-poppins font-extrabold text-base text-black">
+                  ₹{prod.price} <span className="text-xs text-gray-500 font-normal">/ {prod.unit_type || 'piece'}</span>
+                </div>
               </div>
               <div className="pt-4">
                 <button 

@@ -45,6 +45,7 @@ export default function AdminProductsPage() {
     name: '',
     category: '',
     price: '',
+    unit_type: 'piece',
     description: '',
     youtube_url: '',
     instagram_url: '',
@@ -101,7 +102,7 @@ export default function AdminProductsPage() {
   const openAddModal = () => {
     setEditingProduct(null);
     setFormData({ 
-      name: '', category: '', price: '', description: '', youtube_url: '', instagram_url: '', 
+      name: '', category: '', price: '', unit_type: 'piece', description: '', youtube_url: '', instagram_url: '', 
       image_url: '', gallery_images: [], is_active: true 
     });
     setImageFile(null);
@@ -117,6 +118,7 @@ export default function AdminProductsPage() {
       name: product.name || '',
       category: product.category || '',
       price: product.price ? product.price.toString() : '',
+      unit_type: product.unit_type || 'piece',
       description: product.description || '',
       youtube_url: product.youtube_url || '',
       instagram_url: product.instagram_url || '',
@@ -127,11 +129,10 @@ export default function AdminProductsPage() {
     setImageFile(null);
     setImagePreview(product.image_url || '');
     setGalleryFiles([]);
-    setGalleryPreviews([]); // Existing URLs are tracked in formData.gallery_images
+    setGalleryPreviews([]); 
     setIsModalOpen(true);
   };
 
-  // Main Image Handler
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -141,7 +142,6 @@ export default function AdminProductsPage() {
     }
   };
 
-  // Gallery Images Handler
   const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
@@ -171,7 +171,7 @@ export default function AdminProductsPage() {
     let finalImageUrl = formData.image_url;
     let finalGalleryUrls = [...formData.gallery_images];
 
-    // 1. Upload Main Image
+    // Upload Main Image
     if (imageFile) {
       const fileExt = imageFile.name.split('.').pop();
       const uniqueFileName = `main-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -190,7 +190,7 @@ export default function AdminProductsPage() {
       finalImageUrl = publicUrlData.publicUrl;
     }
 
-    // 2. Upload Gallery Images
+    // Upload Gallery Images
     if (galleryFiles.length > 0) {
       for (const file of galleryFiles) {
         const fileExt = file.name.split('.').pop();
@@ -207,9 +207,7 @@ export default function AdminProductsPage() {
       }
     }
 
-    // Cleanup old main image if replaced
     if (editingProduct) {
-      // Clean up old main image if replaced
       if (editingProduct.image_url && editingProduct.image_url !== finalImageUrl) {
         if (editingProduct.image_url.includes('supabase.co/storage')) {
           const oldFileName = editingProduct.image_url.split('/').pop();
@@ -217,7 +215,6 @@ export default function AdminProductsPage() {
         }
       }
 
-      // Clean up removed gallery images
       const originalGallery = editingProduct.gallery_images || [];
       const removedImages = originalGallery.filter((oldUrl: string) => !finalGalleryUrls.includes(oldUrl));
       
@@ -239,6 +236,7 @@ export default function AdminProductsPage() {
       name: formData.name,
       category: formData.category,
       price: parseFloat(formData.price),
+      unit_type: formData.unit_type, // <-- ADDED: Passes dropdown value to the database
       description: formData.description,
       youtube_url: formData.youtube_url,
       instagram_url: formData.instagram_url,
@@ -284,7 +282,6 @@ export default function AdminProductsPage() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
-    // 1. CLEANUP STORAGE BUCKET (Main + Gallery)
     const filesToDelete: string[] = [];
     
     if (productToDelete.image_url?.includes('supabase.co/storage')) {
@@ -305,7 +302,6 @@ export default function AdminProductsPage() {
       await supabase.storage.from('product-images').remove(filesToDelete);
     }
 
-    // 2. DELETE FROM DATABASE
     const { error: dbError } = await supabase.from('products').delete().eq('id', productToDelete.id);
 
     setDeleting(false);
@@ -422,7 +418,9 @@ export default function AdminProductsPage() {
                 <div className="p-4 flex-1 flex flex-col">
                   <span className="font-poppins text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">{product.category}</span>
                   <h3 className="font-serif font-bold text-gray-900 leading-tight mb-2 flex-1 line-clamp-1">{product.name}</h3>
-                  <div className="font-poppins font-bold text-blue-700 text-lg mb-4">₹{product.price}</div>
+                  <div className="font-poppins font-bold text-blue-700 text-lg mb-4">
+                    ₹{product.price} <span className="text-xs text-gray-500 font-normal">/ {product.unit_type || 'piece'}</span>
+                  </div>
                   
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                     <button 
@@ -482,7 +480,8 @@ export default function AdminProductsPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                {/* ADDED: 3-column layout to fit the new Unit Type dropdown */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Category *</label>
                     <input 
@@ -505,6 +504,22 @@ export default function AdminProductsPage() {
                       placeholder="0.00"
                       className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
                     />
+                  </div>
+
+                  {/* ADDED: Unit Type Select Dropdown */}
+                  <div className="space-y-2">
+                    <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Unit Type *</label>
+                    <select 
+                      required
+                      value={formData.unit_type} 
+                      onChange={e => setFormData({...formData, unit_type: e.target.value})}
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none cursor-pointer"
+                    >
+                      <option value="piece">Piece</option>
+                      <option value="packet">Packet</option>
+                      <option value="box">Box</option>
+                      <option value="set">Set</option>
+                    </select>
                   </div>
                 </div>
 
