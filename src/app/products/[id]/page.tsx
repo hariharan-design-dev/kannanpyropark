@@ -60,13 +60,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const handleAddToCart = () => {
     if (!product) return;
     
-    // Add item with the selected quantity stepper amount
+    // Add item with the selected quantity stepper amount and unit type
     for (let i = 0; i < quantity; i++) {
       addItem({
         id: product.id,
         title: product.name,
         price: product.price,
         category: product.category,
+        unit: product.unit_type || 'piece', // <-- ADDED: Passes unit to cart store
       });
     }
 
@@ -192,9 +193,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 {product.name}
               </h1>
               
+              {/* ADDED: Unit display next to price */}
               <div className="font-poppins font-extrabold text-3xl text-black mb-6">
-                ₹{product.price}
-                <span className="font-noto text-xs font-normal text-gray-500 ml-2">(Price for reference/pack)</span>
+                ₹{product.price} 
+                <span className="text-sm font-normal text-gray-500 ml-1">/ {product.unit_type || 'piece'}</span>
               </div>
 
               {/* Status Badge */}
@@ -282,7 +284,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
 
         </div>
-
       </div>
     </main>
   );

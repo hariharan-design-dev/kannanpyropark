@@ -4,11 +4,11 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { Search, PackageOpen, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
-import { useSearchParams, useRouter } from 'next/navigation'; // <-- Added useRouter
+import { useSearchParams, useRouter } from 'next/navigation';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
-  const router = useRouter(); // <-- Initialize router
+  const router = useRouter();
   const urlCategory = searchParams.get('category') || 'All Categories';
 
   const [products, setProducts] = useState<any[]>([]);
@@ -50,16 +50,16 @@ function ProductsContent() {
 
   useEffect(() => {
     fetchActiveProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAddToList = (e: React.MouseEvent, prod: any) => {
-    e.stopPropagation(); // <-- Stops the card click from triggering navigation
+    e.stopPropagation(); 
     addItem({
       id: prod.id,
       title: prod.name, 
       price: prod.price,
       category: prod.category,
+      unit: prod.unit_type || 'piece',
     });
   };
 
@@ -145,7 +145,7 @@ function ProductsContent() {
           {filteredProducts.map((prod) => (
             <div 
               key={prod.id} 
-              onClick={() => router.push(`/products/${prod.id}`)} // <-- Whole card is now cleanly clickable
+              onClick={() => router.push(`/products/${prod.id}`)} 
               className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[#d97706] transition-all cursor-pointer group"
             >
               <div className="space-y-3">
@@ -166,14 +166,15 @@ function ProductsContent() {
                   </h3>
                 </div>
                 
+                {/* ADDED: Unit display next to price */}
                 <div className="pt-2 font-poppins font-extrabold text-lg text-black">
-                  ₹{prod.price}
+                  ₹{prod.price} <span className="text-sm text-gray-500 font-normal">/ {prod.unit_type || 'piece'}</span>
                 </div>
               </div>
 
               <div className="pt-5">
                 <button 
-                  onClick={(e) => handleAddToList(e, prod)} // <-- e.stopPropagation() prevents card click from firing
+                  onClick={(e) => handleAddToList(e, prod)}
                   className="w-full bg-[#0f172a] hover:bg-[#d97706] text-white font-poppins font-semibold text-xs py-3.5 rounded-md transition-colors shadow-sm cursor-pointer"
                 >
                   ADD TO LIST

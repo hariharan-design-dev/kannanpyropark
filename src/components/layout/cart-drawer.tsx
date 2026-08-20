@@ -27,8 +27,10 @@ export const CartDrawer = () => {
 
   const supabase = createClient();
   const pathname = usePathname();
-  const router = useRouter(); // Added router for navigation
+  const router = useRouter(); 
   const isAdminRoute = pathname?.startsWith('/admin');
+
+  const isAdminUser = session?.user?.email === 'kannanpyropark@gmail.com';
 
   // Fix hydration mismatch for localStorage
   useEffect(() => {
@@ -66,6 +68,8 @@ export const CartDrawer = () => {
       return;
     }
 
+    if(isAdminUser) return null;
+
     const {data} = await supabase.from('profiles').select('delivery_address, phone_number').eq('id', session.user.id).single();
 
     if(!data?.delivery_address || !data?.phone_number) {
@@ -100,7 +104,7 @@ export const CartDrawer = () => {
       user_id: session.user.id,
       total_amount: getTotalPrice(),
       status: 'Pending',
-      order_items: items, // Stored as structured JSONB for detailed admin inspection later
+      order_items: items, 
     };
 
     const { error } = await supabase.from('orders').insert([orderPayload]);
@@ -111,7 +115,7 @@ export const CartDrawer = () => {
       alert('Error placing order: ' + error.message);
     } else {
       setOrderSuccess(true);
-      clearCart(); // Clear local pre-order list
+      clearCart(); 
     }
   };
 
@@ -159,7 +163,7 @@ export const CartDrawer = () => {
                   onClick={() => {
                     setOrderSuccess(false);
                     toggleCart();
-                    router.push('/orders'); // Route to user's orders page
+                    router.push('/orders'); 
                   }}
                   className="w-full bg-[#d97706] text-white font-poppins font-semibold text-xs py-3 px-6 rounded-md hover:bg-yellow-600 transition-colors shadow-md cursor-pointer"
                 >
@@ -243,7 +247,10 @@ export const CartDrawer = () => {
                   </div>
                   
                   <div className="flex items-center justify-between mt-2">
-                    <span className="font-poppins font-bold text-[#d97706] text-sm">₹{item.price}</span>
+                    {/* ADDED: Unit display inside the cart next to price */}
+                    <span className="font-poppins font-bold text-[#d97706] text-sm">
+                      ₹{item.price} <span className="text-xs text-gray-500 font-normal">/ {item.unit || 'piece'}</span>
+                    </span>
                     <div className="flex items-center border border-gray-200 rounded-md">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 hover:bg-gray-100 px-2 text-gray-600 cursor-pointer">
                         <Minus className="w-3 h-3" />
