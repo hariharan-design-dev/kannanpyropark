@@ -8,18 +8,19 @@ import { useRouter } from 'next/navigation';
 
 // HARDCODED CATEGORY ORDER (For future dynamic update, fetch this from a DB table)
 const CUSTOM_CATEGORY_ORDER = [
-  'One Sound Crackers', // Updated to match DB
-  'Bijili',             // Updated to match DB
-  'Flower Pots',        // Updated to match DB
-  'Ground Chakkars',    // Updated to match DB
+  'One Sound Crackers', 
+  'Bijili',             
+  'Flower Pots',        
+  'Ground Chakkars',    
   'Peacock Special', 
-  'Rockets',            // Updated to match DB
+  'Rockets',            
   'Smoke', 
   'Blast and Crash', 
   'Visiling', 
-  'Digital wala', 
-  'Bomb', 
-  'Garland'
+  'Digital Wala Crackers', 
+  'Bombs',
+  "Paper Bomb",
+  'Garland Crackers'
 ];
 
 export const QuickOrderList = () => {
@@ -37,7 +38,7 @@ export const QuickOrderList = () => {
         .from('products')
         .select('*')
         .eq('is_active', true)
-        .order('price', { ascending: true }); // Removed DB category order, relying on custom sort below
+        .order('price', { ascending: true });
 
       if (data && !error) {
         // 1. Group products by category
@@ -51,16 +52,14 @@ export const QuickOrderList = () => {
 
         // 2. Sort the categories based on the custom array
         const sortedCategories = Object.keys(grouped).sort((a, b) => {
-          // Use lowercase comparison to prevent case-sensitivity bugs (e.g. "Flower pot" vs "Flower Pot")
           const indexA = CUSTOM_CATEGORY_ORDER.findIndex(c => c.toLowerCase() === a.toLowerCase());
           const indexB = CUSTOM_CATEGORY_ORDER.findIndex(c => c.toLowerCase() === b.toLowerCase());
           
-          if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both in list, sort by index
-          if (indexA !== -1) return -1; // Only A in list, it goes first
-          if (indexB !== -1) return 1;  // Only B in list, it goes first
-          return a.localeCompare(b);    // Neither in list, sort alphabetically at the end
+          if (indexA !== -1 && indexB !== -1) return indexA - indexB; 
+          if (indexA !== -1) return -1; 
+          if (indexB !== -1) return 1;  
+          return a.localeCompare(b);    
         });
-        console.log(sortedCategories);
         setCategories(sortedCategories);
       }
       setLoading(false);
@@ -74,7 +73,8 @@ export const QuickOrderList = () => {
     return item ? item.quantity : 0;
   };
 
-  const handleIncrement = (product: any) => {
+  const handleIncrement = (e: React.MouseEvent, product: any) => {
+    e.stopPropagation(); // Prevent routing to product page when clicking buttons
     const currentQty = getQty(product.id);
     if (currentQty === 0) {
       addItem({
@@ -89,14 +89,16 @@ export const QuickOrderList = () => {
     }
   };
 
-  const handleDecrement = (productId: string) => {
+  const handleDecrement = (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation(); // Prevent routing
     const currentQty = getQty(productId);
     if (currentQty > 0) {
       updateQuantity(productId, currentQty - 1);
     }
   };
 
-  const handleManualInput = (product: any, value: string) => {
+  const handleManualInput = (e: React.ChangeEvent<HTMLInputElement>, product: any, value: string) => {
+    e.stopPropagation();
     const num = parseInt(value, 10);
     
     if (isNaN(num) || num <= 0) {
@@ -162,7 +164,7 @@ export const QuickOrderList = () => {
                   return (
                     <div 
                       key={product.id} 
-                      className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors"
+                      className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors cursor-pointer"
                       onClick={() => router.push(`/products/${product.id}`)}
                     >
                       
@@ -177,11 +179,11 @@ export const QuickOrderList = () => {
                       </div>
 
                       <div className="flex flex-col justify-center overflow-hidden">
-                        <h3 className="font-serif font-bold text-gray-900 text-[10px] sm:text-sm leading-tight truncate sm:whitespace-normal sm:line-clamp-2">
+                        <h3 className="font-serif font-bold text-gray-900 text-[10px] sm:text-sm leading-tight whitespace-normal break-words pr-1">
                           {product.name}
                         </h3>
                         <span className="font-noto text-[8px] sm:text-xs text-gray-500 mt-0.5">
-                          1 {product.unit_type || 'Piece'}
+                          {product.unit_type || 'Piece'}
                         </span>
                       </div>
 
@@ -191,10 +193,10 @@ export const QuickOrderList = () => {
                         </span>
                       </div>
 
-                      <div className="flex justify-center">
+                      <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center border border-[#d97706] rounded sm:rounded-lg overflow-hidden bg-white w-full max-w-[100px] h-6 sm:h-9 shadow-sm">
                           <button 
-                            onClick={() => handleDecrement(product.id)}
+                            onClick={(e) => handleDecrement(e, product.id)}
                             className="w-6 sm:w-8 h-full flex items-center justify-center bg-amber-50 hover:bg-[#d97706] hover:text-white text-[#d97706] transition-colors shrink-0 cursor-pointer"
                           >
                             <Minus className="w-2.5 h-2.5 sm:w-4 sm:h-4" />
@@ -204,13 +206,14 @@ export const QuickOrderList = () => {
                             type="number"
                             min="0"
                             value={qty === 0 ? '' : qty}
-                            onChange={(e) => handleManualInput(product, e.target.value)}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={(e) => handleManualInput(e, product, e.target.value)}
                             className="flex-1 w-full text-center font-poppins font-bold text-gray-900 text-[10px] sm:text-sm outline-none appearance-none m-0 p-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                             placeholder="0"
                           />
 
                           <button 
-                            onClick={() => handleIncrement(product)}
+                            onClick={(e) => handleIncrement(e, product)}
                             className="w-6 sm:w-8 h-full flex items-center justify-center bg-amber-50 hover:bg-[#d97706] hover:text-white text-[#d97706] transition-colors shrink-0 cursor-pointer"
                           >
                             <Plus className="w-2.5 h-2.5 sm:w-4 sm:h-4" />

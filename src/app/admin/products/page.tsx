@@ -513,17 +513,21 @@ export default function AdminProductsPage() {
 
                   <div className="space-y-2">
                     <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Unit Type *</label>
-                    <select 
+                    <input 
+                      type="text"
                       required
                       value={formData.unit_type} 
-                      onChange={e => setFormData({...formData, unit_type: e.target.value})}
-                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none cursor-pointer"
-                    >
-                      <option value="piece">Piece</option>
-                      <option value="packet">Packet</option>
-                      <option value="box">Box</option>
-                      <option value="set">Set</option>
-                    </select>
+                      onChange={e => setFormData({...formData, unit_type: e.target.value.toLowerCase()})}
+                      placeholder="e.g. piece, box, bundle"
+                      className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-black outline-none"
+                      list="unit-suggestions"
+                    />
+                    <datalist id="unit-suggestions">
+                      <option value="piece" />
+                      <option value="packet" />
+                      <option value="box" />
+                      <option value="set" />
+                    </datalist>
                   </div>
                 </div>
 

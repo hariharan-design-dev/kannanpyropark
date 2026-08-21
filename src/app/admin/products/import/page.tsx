@@ -9,14 +9,12 @@ import { createClient } from '@/utils/supabase/client';
 const DATABASE_FIELDS = [
   { key: 'name', label: 'Product Name', required: true },
   { key: 'category', label: 'Category', required: true },
-  { key: 'price', label: 'Price (Rate)', required: true },
+  { key: 'price', label: 'Price (Rate)', required: true, type: 'number' },
   { key: 'unit_type', label: 'Unit Type (Per)', required: true },
   { key: 'description', label: 'Description', required: false },
   { key: 'youtube_url', label: 'YouTube Link', required: false },
   { key: 'instagram_url', label: 'Instagram Link', required: false },
 ];
-
-const VALID_UNITS = ['piece', 'packet', 'box', 'set'];
 
 export default function BulkImportPage() {
   const supabase = createClient();
@@ -26,7 +24,7 @@ export default function BulkImportPage() {
   const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
   const [excelData, setExcelData] = useState<any[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>({});
-  const [defaultVisible, setDefaultVisible] = useState<boolean>(true); // <-- ADDED: Controls visibility
+  const [defaultVisible, setDefaultVisible] = useState<boolean>(true);
   
   const [previewItems, setPreviewItems] = useState<any[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -106,19 +104,27 @@ export default function BulkImportPage() {
         description: mappings['description'] ? String(row[mappings['description']] || '') : undefined,
         youtube_url: mappings['youtube_url'] ? String(row[mappings['youtube_url']] || '') : undefined,
         instagram_url: mappings['instagram_url'] ? String(row[mappings['instagram_url']] || '') : undefined,
-        is_active: defaultVisible, // <-- FIXED: Now uses admin's chosen default preference
+        is_active: defaultVisible,
         isExpanded: false
       };
     }).filter(item => item.name && item.category); 
 
     const { data: existingProducts } = await supabase.from('products').select('*');
     const existingMap = new Map();
+    
+    // FIX: Trim whitespace from DB entries to avoid false "NEW" mismatches
     existingProducts?.forEach(p => {
-      existingMap.set(`${p.name.toLowerCase()}_${p.category.toLowerCase()}`, p);
+      const cleanDbName = String(p.name || '').trim().toLowerCase();
+      const cleanDbCat = String(p.category || '').trim().toLowerCase();
+      existingMap.set(`${cleanDbName}_${cleanDbCat}`, p);
     });
 
     const preview = formattedUploads.map(item => {
-      const key = `${item.name.toLowerCase()}_${item.category.toLowerCase()}`;
+      // FIX: Trim whitespace from Excel entries to match properly
+      const cleanItemName = String(item.name || '').trim().toLowerCase();
+      const cleanItemCat = String(item.category || '').trim().toLowerCase();
+      const key = `${cleanItemName}_${cleanItemCat}`;
+      
       const existing = existingMap.get(key);
 
       if (!existing) {
@@ -142,9 +148,10 @@ export default function BulkImportPage() {
         originalDbData: existing
       };
 
+      // Strict trimming on comparison
       const isDifferent =
-        existing.name !== merged.name || 
-        existing.category !== merged.category || 
+        String(existing.name).trim() !== String(merged.name).trim() || 
+        String(existing.category).trim() !== String(merged.category).trim() || 
         Number(existing.price) !== Number(merged.price) ||
         String(existing.unit_type || '').toLowerCase() !== String(merged.unit_type || '').toLowerCase() ||
         String(existing.description || '').trim() !== String(merged.description || '').trim() ||
@@ -183,8 +190,8 @@ export default function BulkImportPage() {
         item.id = orig.id; 
         
         const isDataChanged =
-          orig.name !== item.name || 
-          orig.category !== item.category ||
+          String(orig.name).trim() !== String(item.name).trim() || 
+          String(orig.category).trim() !== String(item.category).trim() ||
           Number(orig.price) !== Number(item.price) ||
           String(orig.unit_type || 'piece').toLowerCase() !== String(item.unit_type || 'piece').toLowerCase() ||
           String(orig.description || '').trim() !== String(item.description || '').trim() ||
@@ -213,28 +220,33 @@ export default function BulkImportPage() {
 
   // --- STEP 4: BATCH UPLOAD WITH PROGRESS ---
   const executeBulkUpload = async () => {
-    const itemsToUpload = previewItems
+    const itemsToProcess = previewItems
       .filter(i => i.status !== 'SKIP')
       .map(({ status, originalDbData, isExpanded, _tempId, ...dbData }) => dbData);
 
-    if (itemsToUpload.length === 0) {
+    if (itemsToProcess.length === 0) {
       alert("No new items or updates to upload.");
       return;
     }
 
     setStep(4);
     setIsUploading(true);
-    setUploadProgress({ current: 0, total: itemsToUpload.length, failed: 0 });
+    setUploadProgress({ current: 0, total: itemsToProcess.length, failed: 0 });
 
     const BATCH_SIZE = 50;
     let failedCount = 0;
 
-    for (let i = 0; i < itemsToUpload.length; i += BATCH_SIZE) {
-      const batch = itemsToUpload.slice(i, i + BATCH_SIZE);
-      const { error } = await supabase.from('products').upsert(batch, { onConflict: 'name,category' });
+    // FIX: Cleanly separate Updates (has ID) and Inserts (no ID) to prevent constraint crashes
+    const updates = itemsToProcess.filter(item => item.id);
+    const inserts = itemsToProcess.filter(item => !item.id);
+
+    // 1. Process Updates
+    for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+      const batch = updates.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase.from('products').upsert(batch);
       
       if (error) {
-        console.error("Batch error:", error);
+        console.error("Update Batch error:", error);
         failedCount += batch.length;
       }
 
@@ -243,8 +255,24 @@ export default function BulkImportPage() {
         current: Math.min(prev.current + batch.length, prev.total),
         failed: failedCount 
       }));
+      await new Promise(resolve => setTimeout(resolve, 50)); 
+    }
 
-      // <-- FIXED: Forces the browser to visually paint the progress bar update!
+    // 2. Process New Inserts
+    for (let i = 0; i < inserts.length; i += BATCH_SIZE) {
+      const batch = inserts.slice(i, i + BATCH_SIZE);
+      const { error } = await supabase.from('products').insert(batch);
+      
+      if (error) {
+        console.error("Insert Batch error:", error);
+        failedCount += batch.length;
+      }
+
+      setUploadProgress(prev => ({ 
+        ...prev, 
+        current: Math.min(prev.current + batch.length, prev.total),
+        failed: failedCount 
+      }));
       await new Promise(resolve => setTimeout(resolve, 50)); 
     }
 
@@ -320,7 +348,6 @@ export default function BulkImportPage() {
               ))}
             </div>
 
-            {/* ADDED: Default Visibility Toggle */}
             <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-8 cursor-pointer" onClick={() => setDefaultVisible(!defaultVisible)}>
               <input 
                 type="checkbox" 
@@ -350,14 +377,12 @@ export default function BulkImportPage() {
         {step === 3 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
             
-            {/* Header & Filters */}
             <div className="p-4 sm:p-6 border-b border-gray-100 bg-white rounded-t-2xl">
               <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div>
                   <h3 className="font-serif text-xl font-bold flex items-center gap-2 text-black"><Edit3 className="w-5 h-5 text-[#d97706]"/> Command Center</h3>
                   <p className="text-xs text-gray-500 mt-1">Review, tweak values, delete rows, or expand to add media links manually.</p>
                   
-                  {/* Mapped Columns Summary */}
                   <div className="mt-3 flex flex-wrap gap-2">
                     <span className="text-[10px] font-bold text-gray-400 uppercase flex items-center gap-1"><Database className="w-3 h-3"/> Mapped:</span>
                     {Object.entries(mappings).map(([dbKey, xlHead]) => (
@@ -368,7 +393,6 @@ export default function BulkImportPage() {
                   </div>
                 </div>
                 
-                {/* Filter Tabs */}
                 <div className="flex bg-gray-100 p-1 rounded-lg overflow-x-auto w-full md:w-auto hide-scrollbar">
                   {[
                     { id: 'ALL', label: 'All', count: previewItems.length },
@@ -388,7 +412,6 @@ export default function BulkImportPage() {
               </div>
             </div>
 
-            {/* List Body (Natural Scroll) */}
             {isLoadingPreview ? (
               <div className="py-32 flex flex-col items-center justify-center bg-gray-50/50">
                 <Loader2 className="w-8 h-8 animate-spin text-[#d97706] mb-4" />
@@ -402,10 +425,9 @@ export default function BulkImportPage() {
                 
                 {displayedItems.map((item) => {
                   const globalIdx = previewItems.findIndex(p => p._tempId === item._tempId);
-                  const isInvalidUnit = !VALID_UNITS.includes(item.unit_type);
                   
-                  const isNameChanged = item.originalDbData && item.originalDbData.name !== item.name;
-                  const isCategoryChanged = item.originalDbData && item.originalDbData.category !== item.category;
+                  const isNameChanged = item.originalDbData && String(item.originalDbData.name).trim() !== String(item.name).trim();
+                  const isCategoryChanged = item.originalDbData && String(item.originalDbData.category).trim() !== String(item.category).trim();
                   const isPriceChanged = item.originalDbData && Number(item.originalDbData.price) !== Number(item.price);
                   const isUnitChanged = item.originalDbData && String(item.originalDbData.unit_type).toLowerCase() !== String(item.unit_type).toLowerCase();
                   const isActiveChanged = item.originalDbData && Boolean(item.originalDbData.is_active) !== Boolean(item.is_active);
@@ -424,7 +446,6 @@ export default function BulkImportPage() {
                               {item.status}
                             </span>
                             
-                            {/* Visibility Toggle */}
                             <div className="flex items-center gap-2">
                               <label className="flex items-center gap-2 cursor-pointer">
                                 <div className="relative">
@@ -496,7 +517,7 @@ export default function BulkImportPage() {
                             <input 
                               value={item.unit_type} 
                               onChange={(e) => handleCellEdit(globalIdx, 'unit_type', e.target.value.toLowerCase())}
-                              className={`w-full bg-gray-50 border rounded-md px-3 py-2 text-sm outline-none transition-colors focus:border-[#d97706] ${isInvalidUnit ? 'text-red-600 font-bold border-red-400 bg-red-50' : isUnitChanged ? 'border-yellow-400 bg-yellow-50 text-yellow-900' : 'border-gray-200 text-gray-700'}`}
+                              className={`w-full bg-gray-50 border rounded-md px-3 py-2 text-sm outline-none transition-colors focus:border-[#d97706] ${isUnitChanged ? 'border-yellow-400 bg-yellow-50 text-yellow-900' : 'border-gray-200 text-gray-700'}`}
                             />
                             {isUnitChanged && <span className="absolute -top-1 right-0 text-[9px] text-yellow-600 font-bold bg-yellow-50 px-1 rounded">Was: {item.originalDbData.unit_type}</span>}
                           </div>
@@ -554,7 +575,6 @@ export default function BulkImportPage() {
               </div>
             )}
 
-            {/* Footer Actions - Scrolling naturally at the bottom */}
             <div className="p-4 sm:p-6 border-t border-gray-200 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-2xl mt-4">
               <p className="text-xs text-gray-500 font-noto">
                 <span className="font-bold text-[#d97706]">Ready?</span> Only "New" and "Update" rows will be pushed to the database.

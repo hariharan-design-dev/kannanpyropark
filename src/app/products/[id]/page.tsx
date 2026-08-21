@@ -257,7 +257,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </div>
 
               <div className="text-center">
-                <Link href="/products" className="font-poppins text-xs font-semibold text-gray-500 hover:text-black transition-colors underline">
+                <Link href="/" className="font-poppins text-xs font-semibold text-gray-500 hover:text-black transition-colors underline">
                   Continue Browsing Catalog
                 </Link>
               </div>
