@@ -8,7 +8,7 @@ import { AuthModal } from '../auth/auth-modal';
 import { usePathname, useRouter } from 'next/navigation';
 
 // Define the minimum order threshold
-const MINIMUM_ORDER_VALUE = 3000;
+const MINIMUM_ORDER_VALUE = 2000;
 
 export const CartDrawer = () => {
   const { items, isOpen, toggleCart, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
