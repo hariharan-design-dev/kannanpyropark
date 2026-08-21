@@ -30,7 +30,7 @@ export const CartDrawer = () => {
   const router = useRouter(); 
   const isAdminRoute = pathname?.startsWith('/admin');
 
-  const isAdminUser = session?.user?.email === 'kannanpyropark@gmail.com';
+  const isAdminUser = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   // Fix hydration mismatch for localStorage
   useEffect(() => {

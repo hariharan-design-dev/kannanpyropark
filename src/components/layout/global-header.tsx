@@ -46,7 +46,7 @@ export const GlobalHeader = () => {
   if (isAdminRoute) return null;
 
   // Admin Check
-  const isAdminUser = session?.user?.email === 'kannanpyropark@gmail.com';
+  const isAdminUser = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   const headerClasses = isHomePage 
     ? `fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${isScrolled ? 'bg-[#0f172a] shadow-lg' : 'bg-gradient-to-b from-black/80 via-black/40 to-transparent'} text-white`

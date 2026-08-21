@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 
-const ADMIN_EMAILS = ['kannanpyropark@gmail.com'];
+const ADMIN_EMAILS = [process.env.NEXT_PUBLIC_ADMIN_EMAIL];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
