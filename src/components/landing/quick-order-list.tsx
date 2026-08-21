@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Minus, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
+import { useRouter } from 'next/navigation';
 
 // HARDCODED CATEGORY ORDER (For future dynamic update, fetch this from a DB table)
 const CUSTOM_CATEGORY_ORDER = [
@@ -28,6 +29,7 @@ export const QuickOrderList = () => {
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, toggleCart } = useCartStore();
   const supabase = createClient();
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -158,7 +160,11 @@ export const QuickOrderList = () => {
                   const rowTotal = qty * product.price;
 
                   return (
-                    <div key={product.id} className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors">
+                    <div 
+                      key={product.id} 
+                      className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors"
+                      onClick={() => router.push(`/products/${product.id}`)}
+                    >
                       
                       <div className="flex justify-center">
                         <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center border border-gray-200 shrink-0">
