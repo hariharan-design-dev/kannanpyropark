@@ -2,14 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Package, MapPin, Phone, User, RefreshCw, X, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Package, MapPin, Phone, User, RefreshCw, X, FileText, ChevronLeft, ChevronRight, Download, Loader2 } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
+
+// --- IMPORTS FOR PDF ---
+import * as htmlToImage from 'html-to-image';
+import jsPDF from 'jspdf';
+import { InvoiceTemplate } from '@/components/admin/InvoiceTemplate';
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false); 
   
   // Modal State
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -18,7 +24,7 @@ export default function AdminOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('Pending');
 
-  // --- NEW: Pagination States ---
+  // Pagination States
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
@@ -29,7 +35,7 @@ export default function AdminOrdersPage() {
     fetchOrders();
   }, []);
 
-  // --- NEW: Reset to page 1 whenever filters change ---
+  // Reset to page 1 whenever filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, statusFilter]);
@@ -86,7 +92,6 @@ export default function AdminOrdersPage() {
     });
   };
 
-  // 1. First, get all filtered orders
   const filteredOrders = orders.filter(order => {
     const searchLower = searchTerm.toLowerCase();
     const customerName = order.profiles?.full_name?.toLowerCase() || '';
@@ -99,16 +104,59 @@ export default function AdminOrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
-  // --- NEW: 2. Calculate pagination metrics ---
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  
-  // --- NEW: 3. Slice the array to get only the current page's orders ---
   const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
+  // --- PDF GENERATION LOGIC ---
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      const container = document.getElementById('invoice-capture-container');
+      if (!container) {
+        alert("Invoice template not found!");
+        return;
+      }
+      
+      // Give the browser time to render all the pages
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      const pages = document.querySelectorAll('.invoice-page');
+      
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      
+      for (let i = 0; i < pages.length; i++) {
+        const pageElement = pages[i] as HTMLElement;
+        
+        const dataUrl = await htmlToImage.toJpeg(pageElement, { 
+          pixelRatio: 2, 
+          backgroundColor: '#ffffff',
+          quality: 0.75
+        });
+        
+        if (i > 0) {
+          pdf.addPage();
+          pdf.setPage(i + 1); 
+        }
+        
+        pdf.addImage(dataUrl, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      }
+      
+      pdf.save(`Invoice_${selectedOrder.displayId}.pdf`);
+      
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 font-noto pb-20">
+    <div className="min-h-screen bg-gray-50 font-noto pb-20 relative overflow-hidden">
       <AdminHeader />
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -172,7 +220,6 @@ export default function AdminOrdersPage() {
           </div>
         ) : (
           <>
-            {/* CHANGED: Mapping over paginatedOrders instead of filteredOrders */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {paginatedOrders.map(order => (
                 <div 
@@ -261,7 +308,7 @@ export default function AdminOrdersPage() {
               ))}
             </div>
 
-            {/* --- NEW: Pagination Controls --- */}
+            {/* Pagination Controls */}
             {totalPages > 1 && (
               <div className="mt-8 flex flex-col sm:flex-row justify-between items-center bg-white px-6 py-4 rounded-xl shadow-sm border border-gray-200 gap-4">
                 <p className="text-sm text-gray-500 font-poppins">
@@ -324,7 +371,7 @@ export default function AdminOrdersPage() {
             </div>
 
             {/* Modal Scrollable Content */}
-            <div className="p-6 overflow-y-auto bg-gray-50 flex-1 font-noto">
+            <div className="p-4 sm:p-6 overflow-y-auto bg-gray-50 flex-1 font-noto">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 {/* Customer Details */}
@@ -345,16 +392,19 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
 
-              {/* Items Detail */}
-              <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
+              {/* Items Detail Box */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm relative">
+                
+                {/* NEW: STICKY HEADER FIX */}
+                <div className="sticky -top-6 z-10 bg-white px-5 py-4 flex justify-between items-center border-b border-gray-100 rounded-t-xl shadow-sm">
                   <h3 className="font-poppins text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                    Order Line Items
+                    {`${selectedOrder.order_items.length} Order Line Items`}
                   </h3>
                   <span className="font-serif font-bold text-gray-900">Total: <span className="text-blue-600">₹{selectedOrder.total_amount}</span></span>
                 </div>
                 
-                <div className="space-y-3">
+                {/* Items List */}
+                <div className="p-3 sm:p-5 space-y-3">
                   {selectedOrder.order_items.map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
                       <div className="flex items-center gap-4">
@@ -385,23 +435,50 @@ export default function AdminOrdersPage() {
                 <p className="text-xs text-gray-400">Notifies customer immediately.</p>
               </div>
               
-              <select
-                value={selectedOrder.status}
-                onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
-                className={`w-full sm:w-48 font-bold text-sm uppercase px-4 py-3 rounded-lg border outline-none cursor-pointer transition-colors shadow-sm
-                  ${selectedOrder.status === 'Pending' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 
-                    selectedOrder.status === 'Packed' ? 'bg-blue-50 border-blue-300 text-blue-800' : 
-                    'bg-green-50 border-green-300 text-green-800'}`}
-              >
-                <option value="Pending">Mark Pending</option>
-                <option value="Packed">Mark Packed</option>
-                <option value="Delivered">Mark Delivered</option>
-              </select>
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                
+                {/* DOWNLOAD INVOICE BUTTON */}
+                {selectedOrder.status === 'Delivered' && (
+                  <button 
+                    onClick={handleDownloadPDF}
+                    disabled={isDownloading}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-sm px-5 py-3 rounded-lg transition-colors shadow-sm disabled:opacity-75"
+                  >
+                    {isDownloading ? <><Loader2 className="w-4 h-4 animate-spin"/> Generating...</> : <><Download className="w-4 h-4" /> Download Bill</>}
+                  </button>
+                )}
+
+                <select
+                  value={selectedOrder.status}
+                  onChange={(e) => handleStatusChange(selectedOrder.id, e.target.value)}
+                  className={`w-full sm:w-48 font-bold text-sm uppercase px-4 py-3 rounded-lg border outline-none cursor-pointer transition-colors shadow-sm
+                    ${selectedOrder.status === 'Pending' ? 'bg-yellow-50 border-yellow-300 text-yellow-800' : 
+                      selectedOrder.status === 'Packed' ? 'bg-blue-50 border-blue-300 text-blue-800' : 
+                      'bg-green-50 border-green-300 text-green-800'}`}
+                >
+                  <option value="Pending">Mark Pending</option>
+                  <option value="Packed">Mark Packed</option>
+                  <option value="Delivered">Mark Delivered</option>
+                </select>
+              </div>
             </div>
 
           </div>
         </div>
       )}
+
+      {/* --- HIDDEN INVOICE TEMPLATE (Cleaned up redundant divs) --- */}
+      <div style={{ position: 'fixed', top: '-10000px', left: '-10000px', zIndex: -100 }}>
+        {selectedOrder && (
+          <InvoiceTemplate 
+            order={selectedOrder} 
+            customer={{
+              name: selectedOrder.profiles?.full_name || 'Customer',
+              phone: selectedOrder.profiles?.phone_number || 'N/A'
+            }} 
+          />
+        )}
+      </div>
 
     </div>
   );
