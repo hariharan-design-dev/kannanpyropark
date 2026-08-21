@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import * as XLSX from 'xlsx';
-import { UploadCloud, ArrowRight, Settings, CheckCircle2, Loader2, Edit3, ChevronDown, ChevronUp, Link as LinkIcon, Info, Trash2, Database } from 'lucide-react';
+import { UploadCloud, ArrowRight, Settings, CheckCircle2, Loader2, Edit3, ChevronDown, ChevronUp, Link as LinkIcon, Info, Trash2, Database, Eye, EyeOff } from 'lucide-react';
 import { AdminHeader } from '@/components/admin/admin-header';
 import { createClient } from '@/utils/supabase/client';
 
@@ -26,6 +26,7 @@ export default function BulkImportPage() {
   const [excelHeaders, setExcelHeaders] = useState<string[]>([]);
   const [excelData, setExcelData] = useState<any[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>({});
+  const [defaultVisible, setDefaultVisible] = useState<boolean>(true); // <-- ADDED: Controls visibility
   
   const [previewItems, setPreviewItems] = useState<any[]>([]);
   const [isLoadingPreview, setIsLoadingPreview] = useState(false);
@@ -105,7 +106,7 @@ export default function BulkImportPage() {
         description: mappings['description'] ? String(row[mappings['description']] || '') : undefined,
         youtube_url: mappings['youtube_url'] ? String(row[mappings['youtube_url']] || '') : undefined,
         instagram_url: mappings['instagram_url'] ? String(row[mappings['instagram_url']] || '') : undefined,
-        is_active: false,
+        is_active: defaultVisible, // <-- FIXED: Now uses admin's chosen default preference
         isExpanded: false
       };
     }).filter(item => item.name && item.category); 
@@ -130,7 +131,6 @@ export default function BulkImportPage() {
         };
       }
 
-      // Attach existing ID to allow Supabase to UPDATE the row instead of duplicating
       const merged: any = {
         ...item,
         id: existing.id, 
@@ -138,17 +138,19 @@ export default function BulkImportPage() {
         youtube_url: item.youtube_url !== undefined ? item.youtube_url : (existing.youtube_url || ''),
         instagram_url: item.instagram_url !== undefined ? item.instagram_url : (existing.instagram_url || ''),
         unit_type: item.unit_type || existing.unit_type || 'piece',
+        is_active: existing.is_active, 
         originalDbData: existing
       };
 
       const isDifferent =
-        existing.name !== merged.name || // Catches case sensitivity changes
+        existing.name !== merged.name || 
         existing.category !== merged.category || 
         Number(existing.price) !== Number(merged.price) ||
         String(existing.unit_type || '').toLowerCase() !== String(merged.unit_type || '').toLowerCase() ||
         String(existing.description || '').trim() !== String(merged.description || '').trim() ||
         String(existing.youtube_url || '').trim() !== String(merged.youtube_url || '').trim() ||
-        String(existing.instagram_url || '').trim() !== String(merged.instagram_url || '').trim();
+        String(existing.instagram_url || '').trim() !== String(merged.instagram_url || '').trim() ||
+        Boolean(existing.is_active) !== Boolean(merged.is_active);
 
       merged.status = isDifferent ? 'UPDATE' : 'SKIP';
       return merged;
@@ -172,23 +174,23 @@ export default function BulkImportPage() {
       const origNameLower = String(orig.name).trim().toLowerCase();
       const origCatLower = String(orig.category).trim().toLowerCase();
 
-      // If the actual word changed (not just case), it's a completely NEW product
       const isKeyChangedFundamentally = nameLower !== origNameLower || catLower !== origCatLower;
       
       if (isKeyChangedFundamentally) {
         item.status = 'NEW';
-        delete item.id; // Remove ID so Supabase creates a new row
+        delete item.id; 
       } else {
-        item.id = orig.id; // Keep ID so Supabase UPDATES the existing row
+        item.id = orig.id; 
         
         const isDataChanged =
-          orig.name !== item.name || // Catches case changes (e.g. sparkler vs Sparkler)
+          orig.name !== item.name || 
           orig.category !== item.category ||
           Number(orig.price) !== Number(item.price) ||
           String(orig.unit_type || 'piece').toLowerCase() !== String(item.unit_type || 'piece').toLowerCase() ||
           String(orig.description || '').trim() !== String(item.description || '').trim() ||
           String(orig.youtube_url || '').trim() !== String(item.youtube_url || '').trim() ||
-          String(orig.instagram_url || '').trim() !== String(item.instagram_url || '').trim();
+          String(orig.instagram_url || '').trim() !== String(item.instagram_url || '').trim() ||
+          Boolean(orig.is_active) !== Boolean(item.is_active); 
         
         item.status = isDataChanged ? 'UPDATE' : 'SKIP';
       }
@@ -241,6 +243,9 @@ export default function BulkImportPage() {
         current: Math.min(prev.current + batch.length, prev.total),
         failed: failedCount 
       }));
+
+      // <-- FIXED: Forces the browser to visually paint the progress bar update!
+      await new Promise(resolve => setTimeout(resolve, 50)); 
     }
 
     setIsUploading(false);
@@ -270,7 +275,7 @@ export default function BulkImportPage() {
         {step === 1 && (
           <div className="bg-white p-8 sm:p-12 rounded-2xl shadow-sm border border-gray-200 text-center animate-in fade-in zoom-in-95 duration-300 mt-4">
             <UploadCloud className="w-16 h-16 text-[#d97706] mx-auto mb-4" />
-            <h3 className="font-serif text-xl font-bold text-gray-800 mb-2">Upload Excel File</h3>
+            <h3 className="font-serif text-xl text-gray-800 font-bold mb-2">Upload Excel File</h3>
             <p className="text-sm text-gray-500 mb-8 max-w-md mx-auto">
               Select your structured .xlsx or .csv price list. We will automatically extract the raw data grid.
             </p>
@@ -294,7 +299,7 @@ export default function BulkImportPage() {
               <p>We found <strong>{excelHeaders.length} columns</strong>. Match them below. Unmapped fields will be ignored, preserving any existing data in the database.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
               {DATABASE_FIELDS.map(field => (
                 <div key={field.key} className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex-1">
@@ -315,6 +320,21 @@ export default function BulkImportPage() {
               ))}
             </div>
 
+            {/* ADDED: Default Visibility Toggle */}
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200 mb-8 cursor-pointer" onClick={() => setDefaultVisible(!defaultVisible)}>
+              <input 
+                type="checkbox" 
+                checked={defaultVisible} 
+                onChange={(e) => setDefaultVisible(e.target.checked)}
+                className="w-4 h-4 text-[#d97706] focus:ring-[#d97706] border-gray-300 rounded cursor-pointer"
+                onClick={(e) => e.stopPropagation()}
+              />
+              <div>
+                <label className="text-sm font-bold text-gray-800 cursor-pointer">Make new products visible to customers immediately</label>
+                <p className="text-xs text-gray-500">Uncheck this if you want to upload images before customers can see them.</p>
+              </div>
+            </div>
+
             <div className="flex justify-end gap-4 border-t border-gray-100 pt-6">
               <button onClick={() => setStep(1)} className="px-6 py-2.5 text-gray-600 font-bold hover:bg-gray-100 rounded-lg transition-colors cursor-pointer">
                 Back
@@ -328,7 +348,7 @@ export default function BulkImportPage() {
 
         {/* STEP 3: PREVIEW & INLINE EDITING */}
         {step === 3 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-col animate-in fade-in slide-in-from-right-4 duration-300 mt-4">
             
             {/* Header & Filters */}
             <div className="p-4 sm:p-6 border-b border-gray-100 bg-white rounded-t-2xl">
@@ -388,6 +408,7 @@ export default function BulkImportPage() {
                   const isCategoryChanged = item.originalDbData && item.originalDbData.category !== item.category;
                   const isPriceChanged = item.originalDbData && Number(item.originalDbData.price) !== Number(item.price);
                   const isUnitChanged = item.originalDbData && String(item.originalDbData.unit_type).toLowerCase() !== String(item.unit_type).toLowerCase();
+                  const isActiveChanged = item.originalDbData && Boolean(item.originalDbData.is_active) !== Boolean(item.is_active);
                   const isDescChanged = item.originalDbData && String(item.originalDbData.description || '').trim() !== String(item.description || '').trim();
                   const isYtChanged = item.originalDbData && String(item.originalDbData.youtube_url || '').trim() !== String(item.youtube_url || '').trim();
                   const isIgChanged = item.originalDbData && String(item.originalDbData.instagram_url || '').trim() !== String(item.instagram_url || '').trim();
@@ -397,10 +418,37 @@ export default function BulkImportPage() {
                       
                       <div className="p-4 flex flex-col gap-4">
                         
-                        <div className="flex justify-between items-center">
-                           <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase shrink-0 ${item.status === 'NEW' ? 'bg-green-100 text-green-700' : item.status === 'UPDATE' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
-                            {item.status}
-                          </span>
+                        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+                          <div className="flex items-center gap-3">
+                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase shrink-0 ${item.status === 'NEW' ? 'bg-green-100 text-green-700' : item.status === 'UPDATE' ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
+                              {item.status}
+                            </span>
+                            
+                            {/* Visibility Toggle */}
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-2 cursor-pointer">
+                                <div className="relative">
+                                  <input 
+                                    type="checkbox" 
+                                    className="sr-only"
+                                    checked={item.is_active}
+                                    onChange={e => handleCellEdit(globalIdx, 'is_active', e.target.checked)}
+                                  />
+                                  <div className={`block w-8 h-5 rounded-full transition-colors ${item.is_active ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                  <div className={`absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform ${item.is_active ? 'transform translate-x-3' : ''}`}></div>
+                                </div>
+                                <span className="text-[10px] font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1">
+                                  {item.is_active ? <><Eye className="w-3 h-3"/> Visible</> : <><EyeOff className="w-3 h-3"/> Hidden</>}
+                                </span>
+                              </label>
+                              {isActiveChanged && (
+                                <span className="text-[9px] text-yellow-600 font-bold bg-yellow-50 px-1 rounded">
+                                  Was: {item.originalDbData.is_active ? 'Visible' : 'Hidden'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
                           <button 
                             onClick={() => handleRemoveItem(item._tempId)}
                             className="text-gray-400 hover:text-red-600 hover:bg-red-50 p-1.5 rounded transition-colors cursor-pointer"
@@ -410,7 +458,7 @@ export default function BulkImportPage() {
                           </button>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 mt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-5 mt-1">
                           <div className="sm:col-span-3 space-y-1 relative">
                             <label className="text-[10px] font-bold text-gray-500 uppercase">Category</label>
                             <input 
@@ -506,7 +554,7 @@ export default function BulkImportPage() {
               </div>
             )}
 
-            {/* Footer Actions - Now scrolling naturally at the bottom */}
+            {/* Footer Actions - Scrolling naturally at the bottom */}
             <div className="p-4 sm:p-6 border-t border-gray-200 bg-white flex flex-col sm:flex-row justify-between items-center gap-4 rounded-b-2xl mt-4">
               <p className="text-xs text-gray-500 font-noto">
                 <span className="font-bold text-[#d97706]">Ready?</span> Only "New" and "Update" rows will be pushed to the database.
@@ -549,7 +597,7 @@ export default function BulkImportPage() {
             ) : (
               <>
                 <CheckCircle2 className="w-20 h-20 text-green-500 mx-auto mb-6 animate-bounce" />
-                <h3 className="font-serif text-3xl font-bold text-gray-900 mb-2">Import Complete!</h3>
+                <h3 className="font-serif text-3xl font-bold text-gray-900 mb-2">Adding Complete!</h3>
                 <p className="text-gray-600 text-sm mb-8">
                   Successfully pushed <strong>{uploadProgress.current - uploadProgress.failed}</strong> products to the store.
                   {uploadProgress.failed > 0 && <span className="text-red-500 font-bold block mt-2">Failed to import {uploadProgress.failed} items.</span>}
