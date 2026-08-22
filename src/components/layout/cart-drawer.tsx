@@ -116,6 +116,7 @@ export const CartDrawer = () => {
     } else {
       setOrderSuccess(true);
       clearCart(); 
+      await supabase.auth.signOut();
     }
   };
 
