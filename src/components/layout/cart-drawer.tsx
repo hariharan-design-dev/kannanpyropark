@@ -116,7 +116,10 @@ export const CartDrawer = () => {
     } else {
       setOrderSuccess(true);
       clearCart(); 
+      setPhone('');
+      setAddress('');
       await supabase.auth.signOut();
+      setTimeout(() => setOrderSuccess(false), 5000);
     }
   };
 
