@@ -107,7 +107,7 @@ export const InvoiceTemplate = ({ order, customer }: { order: any, customer: any
                     <div className="flex w-full" key={index}>
                       <div className="w-[8%] text-center text-gray-800">{globalIndex}</div>
                       <div className="w-[56%] pl-2 text-gray-900 uppercase leading-snug">{item.title || item.name}</div>
-                      <div className="w-[12%] text-right pr-2 uppercase text-gray-800">{item.quantity} {item.unit || 'PCS'}</div>
+                      <div className="w-[12%] text-center pr-2 text-gray-800">{item.quantity}</div>
                       <div className="w-[12%] text-right pr-2 text-gray-800">{item.price}</div>
                       <div className="w-[12%] text-right pr-2 text-gray-900">{(item.price * item.quantity).toLocaleString('en-IN')}</div>
                     </div>
