@@ -11,9 +11,8 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [isLogin, setIsLogin] = useState(true); // Toggle between Login and Signup
+  const [isLogin, setIsLogin] = useState(false); // Default to Signup as first show
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   
   const [loading, setLoading] = useState(false);
@@ -28,18 +27,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setError('');
     setLoading(true);
     
-    // THE TRICK: Convert phone to a dummy email to bypass SMS provider setup
+    // Convert phone to a dummy email and use phone as password behind the scenes
     const dummyEmail = `${phone}@kannanpyropark.com`;
+    const backendPassword = phone; // Using phone number as password
 
     if (isLogin) {
       // LOGIN FLOW
       const { error } = await supabase.auth.signInWithPassword({
         email: dummyEmail,
-        password: password,
+        password: backendPassword,
       });
 
       if (error) {
-        setError('Invalid mobile number or password.');
+        setError('Invalid mobile number. Please check or sign up.');
       } else {
         onSuccess();
         onClose();
@@ -48,7 +48,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       // SIGN UP FLOW
       const { error } = await supabase.auth.signUp({
         email: dummyEmail,
-        password: password,
+        password: backendPassword,
         options: {
           data: {
             full_name: fullName,
@@ -65,7 +65,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
       }
     }
     setPhone('');
-    setPassword('');
     setFullName('');
     setLoading(false);
   };
@@ -78,7 +77,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
         <div className="bg-[#0f172a] p-6 text-center relative">
           <button 
             onClick={onClose} 
-            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -86,7 +85,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             {isLogin ? 'Welcome Back' : 'Create Account'}
           </h2>
           <p className="font-noto text-xs text-gray-400 mt-2">
-            {isLogin ? 'Login to place your pre-order' : 'Sign up to build your cracker list'}
+            {isLogin ? 'Login with your mobile number' : 'Sign up to build your cracker list'}
           </p>
         </div>
 
@@ -130,23 +129,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="font-poppins text-xs font-bold text-gray-500 uppercase">Password</label>
-              <input 
-                type="password" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={isLogin ? "Enter your password" : "Create a password (min 6 chars)"}
-                className="w-full border border-gray-300 rounded-md px-4 py-3 outline-none focus:border-[#d97706] transition-colors font-poppins text-sm text-black"
-                minLength={6}
-                required
-              />
-            </div>
-
             <button 
               type="submit" 
-              disabled={loading || phone.length < 10 || password.length < 6}
-              className="w-full bg-[#d97706] hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-poppins font-bold text-sm py-3.5 rounded-md transition-colors flex items-center justify-center gap-2 mt-2 shadow-sm"
+              disabled={loading || phone.length < 10}
+              className="w-full bg-[#d97706] hover:bg-yellow-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-poppins font-bold text-sm py-3.5 rounded-md transition-colors flex items-center justify-center gap-2 mt-2 shadow-sm cursor-pointer"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : (isLogin ? 'LOGIN' : 'CREATE ACCOUNT')}
             </button>
@@ -159,9 +145,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError('');
-                setPassword('');
               }}
-              className="text-sm font-poppins text-gray-500 hover:text-[#0f172a] transition-colors"
+              className="text-sm font-poppins text-gray-500 hover:text-[#0f172a] transition-colors cursor-pointer"
             >
               {isLogin ? "Don't have an account? " : "Already have an account? "}
               <span className="font-bold text-[#d97706] underline decoration-transparent hover:decoration-[#d97706] underline-offset-4 transition-all">
