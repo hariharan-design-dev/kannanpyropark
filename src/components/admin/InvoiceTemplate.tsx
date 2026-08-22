@@ -50,7 +50,11 @@ export const InvoiceTemplate = ({ order, customer }: { order: any, customer: any
             
             {/* Company Header Block */}
             <div className="relative border-b border-gray-600 py-4 px-4 flex flex-col justify-center items-center flex-none min-h-[110px]">
-              <img src="/assests/logo.png" alt="Kannan Pyro Park Logo" className="absolute top-4 left-4 w-32 h-16 object-contain" />
+              <img 
+                src="/assests/icon.png" 
+                alt="Kannan Pyro Park Logo" 
+                className="absolute top-3.5 left-6 w-20 h-20 rounded-full object-cover shadow-sm border border-gray-200" 
+              />
               <div className="text-center ml-12 leading-tight">
                 <h1 className="text-xl font-bold text-[#800080] tracking-wide mb-1">KANNAN PYRO PARK</h1>
                 <p className="text-[11px] text-gray-800">

@@ -16,6 +16,15 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false); 
+
+  // Invoice editor state
+  const [showInvoiceEditor, setShowInvoiceEditor] = useState(false);
+  const [invoiceForm, setInvoiceForm] = useState({
+    fullName: '',
+    phone: '',
+    address: '',
+    createdAt: '',
+  });
   
   // Modal State
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -151,6 +160,85 @@ export default function AdminOrdersPage() {
       console.error("Error generating PDF:", error);
       alert("Failed to generate PDF. Please try again.");
     } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  const openInvoiceEditor = () => {
+    // Format date for the HTML date input (YYYY-MM-DD)
+    const dateObj = new Date(selectedOrder.created_at);
+    const formattedDate = dateObj.toISOString().split('T')[0];
+
+    setInvoiceForm({
+      fullName: selectedOrder.profiles?.full_name || '',
+      phone: selectedOrder.profiles?.phone_number || '',
+      address: selectedOrder.profiles?.delivery_address || '',
+      createdAt: formattedDate
+    });
+    setShowInvoiceEditor(true);
+  };
+
+  const handleSaveAndDownload = async () => {
+    if (!invoiceForm.fullName.trim()) {
+      alert("Please enter a Customer Name.");
+      return;
+    }
+    if (!invoiceForm.phone.trim()) {
+      alert("Please enter a Phone Number.");
+      return;
+    }
+    if (!invoiceForm.createdAt) {
+      alert("Please select an Invoice Date.");
+      return;
+    }
+    setIsDownloading(true);
+
+    try {
+      // 1. Update Customer Profile in DB
+      if (selectedOrder.user_id) {
+        const { error: profileError } = await supabase.from('profiles')
+          .update({ 
+            full_name: invoiceForm.fullName, 
+            phone_number: invoiceForm.phone,
+            delivery_address: invoiceForm.address // <-- NEW
+          })
+          .eq('id', selectedOrder.user_id);
+
+        if (profileError) throw new Error('Profile Update Blocked: ' + profileError.message);
+      }
+
+      // 2. Update Order Date in DB
+      const updatedDate = new Date(invoiceForm.createdAt).toISOString();
+      const { error: orderError } = await supabase.from('orders')
+        .update({ created_at: updatedDate })
+        .eq('id', selectedOrder.id);
+
+      if (orderError) throw new Error('Order Update Blocked: ' + orderError.message);
+
+      // 3. Update Local State (so the hidden PDF gets the new data instantly)
+      const updatedOrder = {
+        ...selectedOrder,
+        created_at: updatedDate,
+        profiles: {
+          ...selectedOrder.profiles,
+          full_name: invoiceForm.fullName,
+          phone_number: invoiceForm.phone,
+          delivery_address: invoiceForm.address
+        }
+      };
+      
+      setSelectedOrder(updatedOrder);
+      setOrders(prev => prev.map(o => o.id === updatedOrder.id ? updatedOrder : o));
+
+      // 4. Wait a split second for React to update the hidden HTML, then capture PDF
+      setTimeout(async () => {
+        await handleDownloadPDF(); 
+        setShowInvoiceEditor(false);
+      }, 500);
+
+    } catch (error: any) {
+      console.error("Error updating database:", error);
+      alert(error.message || "Failed to save updates.");
       setIsDownloading(false);
     }
   };
@@ -440,7 +528,7 @@ export default function AdminOrdersPage() {
                 {/* DOWNLOAD INVOICE BUTTON */}
                 {selectedOrder.status === 'Delivered' && (
                   <button 
-                    onClick={handleDownloadPDF}
+                    onClick={openInvoiceEditor} // <-- Changed this line
                     disabled={isDownloading}
                     className="w-full sm:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-poppins font-bold text-sm px-5 py-3 rounded-lg transition-colors shadow-sm disabled:opacity-75"
                   >
@@ -479,6 +567,80 @@ export default function AdminOrdersPage() {
           />
         )}
       </div>
+
+      {/* --- INVOICE EDITOR MODAL --- */}
+      {showInvoiceEditor && (
+        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            
+            <div className="bg-slate-900 text-white px-6 py-4 flex justify-between items-center">
+              <h2 className="font-serif text-lg font-bold">Edit Invoice Details</h2>
+              <button onClick={() => setShowInvoiceEditor(false)} className="hover:bg-slate-800 p-1 rounded-full">
+                <X className="w-5 h-5 text-slate-300" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Customer Name</label>
+                <input 
+                  type="text" 
+                  value={invoiceForm.fullName} 
+                  onChange={(e) => setInvoiceForm({...invoiceForm, fullName: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Phone Number</label>
+                <input 
+                  type="text" 
+                  value={invoiceForm.phone} 
+                  onChange={(e) => setInvoiceForm({...invoiceForm, phone: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Delivery Address</label>
+                <textarea 
+                  rows={2}
+                  value={invoiceForm.address} 
+                  onChange={(e) => setInvoiceForm({...invoiceForm, address: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Invoice Date</label>
+                <input 
+                  type="date" 
+                  value={invoiceForm.createdAt} 
+                  onChange={(e) => setInvoiceForm({...invoiceForm, createdAt: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 flex justify-end gap-3">
+              <button 
+                onClick={() => setShowInvoiceEditor(false)}
+                className="px-4 py-2 text-sm font-bold text-gray-600 hover:bg-gray-200 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSaveAndDownload}
+                disabled={isDownloading}
+                className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-lg shadow-sm transition-colors flex items-center gap-2 disabled:opacity-75"
+              >
+                {isDownloading ? <><Loader2 className="w-4 h-4 animate-spin"/> Saving...</> : "Save & Generate PDF"}
+              </button>
+            </div>
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
