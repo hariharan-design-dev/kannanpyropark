@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Package, Users, ShoppingCart, LogOut, ShieldCheck } from 'lucide-react';
+import { Package, Users, ShoppingCart, LogOut, ShieldCheck, Settings } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 
 export const AdminHeader = () => {
@@ -54,14 +54,24 @@ export const AdminHeader = () => {
           })}
         </nav>
 
-        {/* Logout Action */}
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors font-poppins text-sm font-semibold"
-        >
-          <LogOut className="w-4 h-4" />
-          <span className="hidden sm:inline">Logout</span>
-        </button>
+        <div className='flex gap-5'>
+          <Link 
+            href="/admin/settings"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-bold text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+          >
+            <Settings className="w-4 h-4" />
+            <span className='hidden sm:inline'>Settings</span>
+          </Link>
+
+          {/* Logout Action */}
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-gray-400 hover:text-red-400 transition-colors font-poppins text-sm font-semibold"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile Navigation (Bottom strip for small screens) */}

@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/utils/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
-import { Save, Image as ImageIcon, Plus, Trash2, Loader2, Layout, LayoutPanelTop, Settings, RotateCcw } from 'lucide-react';
+import { Save, Image as ImageIcon, Plus, Trash2, Loader2, Layout, LayoutPanelTop, Settings, RotateCcw, Shield } from 'lucide-react';
 
 export default function AdminSettingsPage() {
   const supabase = createClient();
@@ -17,10 +17,16 @@ export default function AdminSettingsPage() {
   // Draft & Unsaved State
   const [initialDataLoaded, setInitialDataLoaded] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const skipAutoSave = useRef(false);
 
   // Image Upload State
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  // Security State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Form State
   const [form, setForm] = useState({
@@ -45,6 +51,11 @@ export default function AdminSettingsPage() {
   // 1. Auto-save draft to localStorage whenever form, phones, or emails change
   useEffect(() => {
     if (!initialDataLoaded) return;
+
+    if(skipAutoSave.current) {
+      skipAutoSave.current = false;
+      return;
+    }
 
     const draftData = { form, phones, emails };
     localStorage.setItem('admin_settings_draft', JSON.stringify(draftData));
@@ -78,6 +89,7 @@ export default function AdminSettingsPage() {
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
+        skipAutoSave.current = true;
         setForm(parsed.form);
         setPhones(parsed.phones || ['']);
         setEmails(parsed.emails || ['']);
@@ -91,6 +103,7 @@ export default function AdminSettingsPage() {
     }
 
     if (data && !error) {
+      skipAutoSave.current = true;
       setForm({
         hero_bg_url: data.hero_bg_url || '',
         hero_subtitle: data.hero_subtitle || '', hero_subtitle_color: data.hero_subtitle_color || '#d97706',
@@ -176,6 +189,34 @@ export default function AdminSettingsPage() {
   const addDynamicField = (setter: any, array: string[]) => setter([...array, '']);
   const removeDynamicField = (setter: any, array: string[], index: number) => setter(array.filter((_, i) => i !== index));
 
+  const handlePasswordUpdate = async () => {
+    if (newPassword !== confirmPassword) {
+      alert("Passwords do not match!");
+      return;
+    }
+    if (newPassword.length < 6) {
+      alert("Password must be at least 6 characters long.");
+      return;
+    }
+    
+    setUpdatingPassword(true);
+    
+    // Supabase allows authenticated users to update their own passwords directly
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+    
+    setUpdatingPassword(false);
+    
+    if (error) {
+      alert("Failed to update password: " + error.message);
+    } else {
+      alert("Password updated successfully!");
+      setNewPassword('');
+      setConfirmPassword('');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -259,6 +300,14 @@ export default function AdminSettingsPage() {
             }`}
           >
             <Settings className="w-4 h-4" /> Store Operations
+          </button>
+          <button 
+            onClick={() => setActiveTab('security')} 
+            className={`pb-3 px-3 sm:px-4 font-bold text-xs sm:text-sm flex items-center gap-2 border-b-2 whitespace-nowrap transition-colors ${
+              activeTab === 'security' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Shield className="w-4 h-4" /> Security
           </button>
         </div>
 
@@ -499,6 +548,47 @@ export default function AdminSettingsPage() {
                   onChange={(e) => setForm({...form, min_order_value: e.target.value === '' ? '' as any : Number(e.target.value)})} 
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 font-bold text-lg text-blue-600 outline-none focus:border-blue-500" 
                 />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ================= SECURITY TAB ================= */}
+        {activeTab === 'security' && (
+          <div className="space-y-6">
+            <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+              <h3 className="font-serif font-bold text-base sm:text-lg mb-2 text-gray-900">Change Admin Password</h3>
+              <p className="text-xs text-gray-500 mb-6">Update your login password. You will remain logged in after changing it.</p>
+              
+              <div className="max-w-md space-y-4">
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
+                  <input 
+                    type="password" 
+                    value={newPassword} 
+                    onChange={(e) => setNewPassword(e.target.value)} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-500" 
+                    placeholder="Enter new password"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Confirm New Password</label>
+                  <input 
+                    type="password" 
+                    value={confirmPassword} 
+                    onChange={(e) => setConfirmPassword(e.target.value)} 
+                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-blue-500" 
+                    placeholder="Confirm new password"
+                  />
+                </div>
+                
+                <button 
+                  onClick={handlePasswordUpdate}
+                  disabled={updatingPassword || !newPassword || !confirmPassword}
+                  className="mt-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold shadow-sm transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {updatingPassword ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Update Password'}
+                </button>
               </div>
             </div>
           </div>
