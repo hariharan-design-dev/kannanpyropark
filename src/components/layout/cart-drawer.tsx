@@ -6,12 +6,11 @@ import { useCartStore } from '@/store/cartStore';
 import { createClient } from '@/utils/supabase/client';
 import { AuthModal } from '../auth/auth-modal';
 import { usePathname, useRouter } from 'next/navigation';
-
-// Define the minimum order threshold
-const MINIMUM_ORDER_VALUE = 2000;
+import { useSettingsStore } from '@/store/settingsStore';
 
 export const CartDrawer = () => {
   const { items, isOpen, toggleCart, updateQuantity, removeItem, getTotalPrice, clearCart } = useCartStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const [isMounted, setIsMounted] = useState(false);
 
   // Auth States
@@ -50,6 +49,12 @@ export const CartDrawer = () => {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if(!settings) fetchSettings();
+  }, [settings, fetchSettings]);
+
+  const MINIMUM_ORDER_VALUE = settings?.min_order_value || 2000;
 
   const fetchUserProfile = async (userId: string) => {
     const {data} = await supabase.from('profiles').select('*').eq('id', userId).single();
