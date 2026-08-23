@@ -37,11 +37,25 @@ export const LandingFooter = () => {
                 {settings.footer_about}
               </p>
             )}
-            <div className="flex space-x-4 pt-2">
-              <a href="#" className="text-gray-400 hover:text-[#d97706] transition-colors"><FacebookIcon className="w-5 h-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-[#d97706] transition-colors"><InstagramIcon className="w-5 h-5" /></a>
-              <a href="#" className="text-gray-400 hover:text-[#d97706] transition-colors"><TwitterIcon className="w-5 h-5" /></a>
-            </div>
+            {(settings?.footer_facebook || settings?.footer_instagram || settings?.footer_twitter) && (
+              <div className="flex space-x-4 pt-2">
+                {settings?.footer_facebook && (
+                  <a href={settings.footer_facebook} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d97706] transition-colors">
+                    <FacebookIcon className="w-5 h-5" />
+                  </a>
+                )}
+                {settings?.footer_instagram && (
+                  <a href={settings.footer_instagram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d97706] transition-colors">
+                    <InstagramIcon className="w-5 h-5" />
+                  </a>
+                )}
+                {settings?.footer_twitter && (
+                  <a href={settings.footer_twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-[#d97706] transition-colors">
+                    <TwitterIcon className="w-5 h-5" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -71,7 +85,7 @@ export const LandingFooter = () => {
               {settings?.footer_address && (
                 <li className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-[#d97706] shrink-0 mt-0.5" />
-                  <a href='https://share.google/EQi30wiQxqJt7ZCkj' target='_blank'>{settings.footer_address}</a>
+                  <a href='https://maps.app.goo.gl/h7ucLWcc1b4Vnx3t6' target='_blank'>{settings.footer_address}</a>
                 </li>
               )}
               {settings?.footer_phones && settings.footer_phones.length > 0 && (
@@ -79,7 +93,9 @@ export const LandingFooter = () => {
                   <Phone className="w-5 h-5 text-[#d97706] shrink-0" />
                   <span>
                     {settings.footer_phones.map((phone, idx) => (
-                      <div key={idx}>{phone}</div>
+                      <div key={idx}>
+                        <a href={`tel:${phone}`}>{phone}</a>
+                      </div>
                     ))}
                   </span>
                 </li>
@@ -89,7 +105,9 @@ export const LandingFooter = () => {
                   <Mail className="w-5 h-5 text-[#d97706] shrink-0" />
                   <span>
                     {settings.footer_emails.map((email, idx) => (
-                      <div key={idx}>{email}</div>
+                      <div key={idx}>
+                        <a href={`mailto:${email}`}>{email}</a>
+                      </div>
                     ))}
                   </span>
                 </li>

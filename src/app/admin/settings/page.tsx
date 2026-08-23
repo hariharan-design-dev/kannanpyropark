@@ -37,6 +37,9 @@ export default function AdminSettingsPage() {
     hero_description: '', hero_description_color: '#e5e7eb',
     footer_about: '',
     footer_address: '',
+    footer_facebook: '',
+    footer_instagram: '',
+    footer_twitter: '',
     min_order_value: 2000
   });
 
@@ -112,6 +115,9 @@ export default function AdminSettingsPage() {
         hero_description: data.hero_description || '', hero_description_color: data.hero_description_color || '#e5e7eb',
         footer_about: data.footer_about || '',
         footer_address: data.footer_address || '',
+        footer_facebook: data.footer_facebook || '',
+        footer_instagram: data.footer_instagram || '',
+        footer_twitter: data.footer_twitter || '',
         min_order_value: data.min_order_value || 2000
       });
       
@@ -460,71 +466,116 @@ export default function AdminSettingsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               
-              {/* Phone Numbers */}
-              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-serif font-bold text-sm sm:text-base text-gray-900">Phone Numbers</h3>
-                  <button 
-                    onClick={() => addDynamicField(setPhones, phones)} 
-                    className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5"/> Add Phone
-                  </button>
+              {/* LEFT COLUMN */}
+              <div className="space-y-6">
+                {/* Phone Numbers */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-gray-900">Phone Numbers</h3>
+                    <button 
+                      onClick={() => addDynamicField(setPhones, phones)} 
+                      className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5"/> Add Phone
+                    </button>
+                  </div>
+                  <div className="space-y-2.5">
+                    {phones.map((phone, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={phone} 
+                          onChange={(e) => handleDynamicChange(setPhones, phones, idx, e.target.value)} 
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" 
+                          placeholder="+91 81900 78401" 
+                        />
+                        {phones.length > 1 && (
+                          <button 
+                            onClick={() => removeDynamicField(setPhones, phones, idx)} 
+                            className="p-2 text-gray-400 hover:text-red-500 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4"/>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="space-y-2.5">
-                  {phones.map((phone, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={phone} 
-                        onChange={(e) => handleDynamicChange(setPhones, phones, idx, e.target.value)} 
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" 
-                        placeholder="+91 81900 78401" 
-                      />
-                      {phones.length > 1 && (
-                        <button 
-                          onClick={() => removeDynamicField(setPhones, phones, idx)} 
-                          className="p-2 text-gray-400 hover:text-red-500 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4"/>
-                        </button>
-                      )}
-                    </div>
-                  ))}
+
+                {/* Emails */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-serif font-bold text-sm sm:text-base text-gray-900">Email Addresses</h3>
+                    <button 
+                      onClick={() => addDynamicField(setEmails, emails)} 
+                      className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5"/> Add Email
+                    </button>
+                  </div>
+                  <div className="space-y-2.5">
+                    {emails.map((email, idx) => (
+                      <div key={idx} className="flex gap-2">
+                        <input 
+                          type="email" 
+                          value={email} 
+                          onChange={(e) => handleDynamicChange(setEmails, emails, idx, e.target.value)} 
+                          className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" 
+                          placeholder="kannanpyropark@gmail.com" 
+                        />
+                        {emails.length > 1 && (
+                          <button 
+                            onClick={() => removeDynamicField(setEmails, emails, idx)} 
+                            className="p-2 text-gray-400 hover:text-red-500 cursor-pointer"
+                          >
+                            <Trash2 className="w-4 h-4"/>
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Emails */}
-              <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <h3 className="font-serif font-bold text-sm sm:text-base text-gray-900">Email Addresses</h3>
-                  <button 
-                    onClick={() => addDynamicField(setEmails, emails)} 
-                    className="text-xs font-bold text-blue-600 flex items-center gap-1 hover:underline cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5"/> Add Email
-                  </button>
-                </div>
-                <div className="space-y-2.5">
-                  {emails.map((email, idx) => (
-                    <div key={idx} className="flex gap-2">
+              {/* RIGHT COLUMN */}
+              <div>
+                {/* Social Media Links */}
+                <div className="bg-white p-4 sm:p-6 rounded-xl border border-gray-200 shadow-sm h-full">
+                  <h3 className="font-serif font-bold text-base sm:text-lg text-gray-900 mb-1">Social Media Links</h3>
+                  <p className="text-xs text-gray-500 mb-5">Leave a field empty to hide its icon from the footer.</p>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Facebook URL</label>
                       <input 
-                        type="email" 
-                        value={email} 
-                        onChange={(e) => handleDynamicChange(setEmails, emails, idx, e.target.value)} 
-                        className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm outline-none focus:border-blue-500" 
-                        placeholder="kannanpyropark@gmail.com" 
+                        type="url" 
+                        value={form.footer_facebook} 
+                        onChange={(e) => setForm({...form, footer_facebook: e.target.value})} 
+                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-500" 
+                        placeholder="https://facebook.com/..." 
                       />
-                      {emails.length > 1 && (
-                        <button 
-                          onClick={() => removeDynamicField(setEmails, emails, idx)} 
-                          className="p-2 text-gray-400 hover:text-red-500 cursor-pointer"
-                        >
-                          <Trash2 className="w-4 h-4"/>
-                        </button>
-                      )}
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Instagram URL</label>
+                      <input 
+                        type="url" 
+                        value={form.footer_instagram} 
+                        onChange={(e) => setForm({...form, footer_instagram: e.target.value})} 
+                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-500" 
+                        placeholder="https://instagram.com/..." 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Twitter URL</label>
+                      <input 
+                        type="url" 
+                        value={form.footer_twitter} 
+                        onChange={(e) => setForm({...form, footer_twitter: e.target.value})} 
+                        className="w-full border border-gray-300 rounded-lg px-3 sm:px-4 py-2 text-sm outline-none focus:border-blue-500" 
+                        placeholder="https://twitter.com/..." 
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

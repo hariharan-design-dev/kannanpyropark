@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { User, FileText, LogIn, LogOut } from 'lucide-react';
+import { User, FileText, LogIn, LogOut, Package, Home } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
 import { AuthModal } from '@/components/auth/auth-modal';
@@ -42,10 +42,8 @@ export const GlobalHeader = () => {
     router.push('/'); 
   };
 
-  // If we are on ANY admin page, do not render the customer header at all
   if (isAdminRoute) return null;
 
-  // Admin Check
   const isAdminUser = session?.user?.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
 
   const headerClasses = isHomePage 
@@ -69,7 +67,6 @@ export const GlobalHeader = () => {
             <nav className="hidden md:flex items-center gap-8 font-poppins text-sm font-semibold uppercase tracking-wide">
               <Link href="/products" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/products') ? 'border-[#d97706] text-black' : 'border-transparent text-gray-500 hover:text-black'}`}>Products</Link>
               
-              {/* --- ONLY show My Requests if the user is logged in AND is NOT the admin --- */}
               {session && !isAdminUser && (
                 <Link href="/orders" className={`pb-1 border-b-2 transition-colors ${pathname.includes('/orders') ? 'border-[#d97706] text-[#d97706]' : 'border-transparent text-gray-500 hover:text-black'}`}>My Requests</Link>
               )}
@@ -94,7 +91,26 @@ export const GlobalHeader = () => {
             ) : (
               /* --- REGULAR CUSTOMER UI --- */
               <>
-                <button onClick={toggleCart} className={`relative p-1 transition-colors cursor-pointer ${iconClasses}`}>
+                {/* --- HOME ICON (Hidden on Homepage) --- */}
+                {!isHomePage && (
+                  <Link href="/" className={`p-1 transition-colors ${iconClasses}`} title="Back to Home">
+                    <Home className="w-5 h-5" />
+                  </Link>
+                )}
+
+                {/* --- ORDERS ICON --- */}
+                {session && !isAdminUser && (
+                  <Link 
+                    href="/orders" 
+                    className={`p-1 transition-colors ${iconClasses} ${!isHomePage ? 'md:hidden' : ''}`} 
+                    title="My Orders"
+                  >
+                    <Package className="w-5 h-5" />
+                  </Link>
+                )}
+
+                {/* --- CART ICON --- */}
+                <button onClick={toggleCart} className={`relative p-1 transition-colors cursor-pointer ${iconClasses}`} title="Cart">
                   <FileText className="w-5 h-5" />
                   {isMounted && getTotalItems() > 0 && (
                     <span className="absolute -top-1 -right-1 bg-[#d97706] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{getTotalItems()}</span>

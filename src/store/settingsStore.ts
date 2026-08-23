@@ -15,6 +15,9 @@ interface SiteSettings {
   footer_address: string;
   footer_phones: string[];
   footer_emails: string[];
+  footer_facebook: string;
+  footer_instagram: string;
+  footer_twitter: string;
   min_order_value: number;
 }
 

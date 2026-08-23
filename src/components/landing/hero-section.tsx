@@ -34,7 +34,7 @@ export const HeroSection = () => {
       {/* Dark Overlay for text readability */}
       <div className="absolute inset-0 bg-black/50 z-10" />
 
-      <div className="relative z-20 max-w-4xl mx-auto px-4 text-center mt-16">
+      <div className="relative z-20 max-w-4xl mx-auto px-4 text-center -mt-15">
         
         {settings?.hero_subtitle && (
           <span 
