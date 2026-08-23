@@ -165,7 +165,7 @@ export const QuickOrderList = () => {
                     <div 
                       key={product.id} 
                       className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors cursor-pointer"
-                      onClick={() => router.push(`/products/${product.id}`)}
+                      // onClick={() => router.push(`/products/${product.id}`)}
                     >
                       
                       <div className="flex justify-center">

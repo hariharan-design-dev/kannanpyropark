@@ -75,10 +75,13 @@ export const CartDrawer = () => {
 
     if(isAdminUser) return null;
 
+    setLoading(true);
+
     const {data} = await supabase.from('profiles').select('delivery_address, phone_number').eq('id', session.user.id).single();
 
     if(!data?.delivery_address || !data?.phone_number) {
       setNeedsDetails(true);
+      setLoading(false);
       return;
     }
 
@@ -103,6 +106,10 @@ export const CartDrawer = () => {
   };
 
   const executePreOrder = async () => {
+    if(items.length === 0 || getTotalPrice() === 0) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
 
     const orderPayload = {
