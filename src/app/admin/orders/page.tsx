@@ -94,7 +94,8 @@ export default function AdminOrdersPage() {
   };
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('en-IN', {
+    const safeDate = dateStr.includes('Z') || dateStr.includes('+') ? dateStr : `${dateStr}Z`;
+    return new Date(safeDate).toLocaleString('en-IN', {
       timeZone: 'Asia/Kolkata',
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: true
@@ -166,8 +167,8 @@ export default function AdminOrdersPage() {
 
   const openInvoiceEditor = () => {
     // Format date for the HTML date input (YYYY-MM-DD)
-    const dateObj = new Date(selectedOrder.created_at);
-    const formattedDate = dateObj.toISOString().split('T')[0];
+    const safeDate = selectedOrder.created_at.includes('Z') || selectedOrder.created_at.includes('+') ? selectedOrder.created_at : `${selectedOrder.created_at}Z`;
+    const formattedDate = new Date(safeDate).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
 
     setInvoiceForm({
       fullName: selectedOrder.profiles?.full_name || '',

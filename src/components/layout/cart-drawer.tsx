@@ -110,6 +110,7 @@ export const CartDrawer = () => {
       total_amount: getTotalPrice(),
       status: 'Pending',
       order_items: items, 
+      created_at: new Date().toISOString()
     };
 
     const { error } = await supabase.from('orders').insert([orderPayload]);
