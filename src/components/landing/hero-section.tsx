@@ -74,12 +74,6 @@ export const HeroSection = () => {
           >
             EXPLORE PRODUCTS
           </Link> */}
-          <Link 
-            href="/orders" 
-            className="w-full sm:w-auto border border-white hover:bg-white hover:text-black text-white px-8 py-4 transition-colors rounded-sm tracking-wide"
-          >
-            TRACK MY ORDERS
-          </Link>
         </div>
       </div>
     </section>
