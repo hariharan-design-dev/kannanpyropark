@@ -265,6 +265,7 @@ export default function AdminOrdersPage() {
   };
 
   const handleDownloadPDF = async () => {
+    setIsDownloading(true);
     try {
       const container = document.getElementById('invoice-capture-container');
       if (!container) return;
@@ -282,6 +283,8 @@ export default function AdminOrdersPage() {
       pdf.save(`Invoice_${selectedOrder.displayId}.pdf`);
     } catch (error) {
       alert("Failed to generate PDF. Please try again.");
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -444,8 +447,12 @@ export default function AdminOrdersPage() {
                   <Edit className="w-4 h-4" /> Edit Order
                 </button>
                 {selectedOrder.status === 'Delivered' && (
-                   <button onClick={openEditModal} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-lg shadow-sm">
-                     <Download className="w-4 h-4" /> Bill
+                   <button 
+                     onClick={handleDownloadPDF} 
+                     disabled={isDownloading}
+                     className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-lg shadow-sm disabled:opacity-75 transition-colors cursor-pointer"
+                   >
+                     {isDownloading ? <><Loader2 className="w-4 h-4 animate-spin"/> Generating...</> : <><Download className="w-4 h-4" /> Bill</>}
                    </button>
                 )}
               </div>
