@@ -147,19 +147,26 @@ export default function AdminOrdersPage() {
     
     if (existingIndex >= 0) {
       const newItems = [...editItems];
-      newItems[existingIndex].quantity += 1;
-      // Re-check against baseline
-      newItems[existingIndex].isNew = newItems[existingIndex].originalQuantity !== newItems[existingIndex].quantity;
+      // FLAW 1 FIX: Create a strict new copy of the item object before modifying it
+      const currentItem = newItems[existingIndex];
+      
+      newItems[existingIndex] = {
+        ...currentItem,
+        quantity: currentItem.quantity + 1,
+        isNew: currentItem.originalQuantity !== (currentItem.quantity + 1)
+      };
+      
       setEditItems(newItems);
     } else {
       setEditItems([{
         id: product.id,
-        title: product.name || product.title,
+        title: product.title || product.name, 
+        name: product.name || product.title,
         category: product.category,
         price: product.price,
         quantity: 1,
         unit: product.unit || 'piece',
-        isNew: true
+        isNew: true 
       }, ...editItems]);
     }
     
@@ -437,7 +444,7 @@ export default function AdminOrdersPage() {
                   <Edit className="w-4 h-4" /> Edit Order
                 </button>
                 {selectedOrder.status === 'Delivered' && (
-                   <button onClick={handleDownloadPDF} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-lg shadow-sm">
+                   <button onClick={openEditModal} className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-5 py-3 rounded-lg shadow-sm">
                      <Download className="w-4 h-4" /> Bill
                    </button>
                 )}
