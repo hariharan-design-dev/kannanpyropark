@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Minus, Image as ImageIcon, ShoppingBag } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
-import { useRouter } from 'next/navigation';
+import { ProductModal } from './product-modal';
 
 // HARDCODED CATEGORY ORDER (For future dynamic update, fetch this from a DB table)
 const CUSTOM_CATEGORY_ORDER = [
@@ -27,10 +27,10 @@ export const QuickOrderList = () => {
   const [groupedProducts, setGroupedProducts] = useState<Record<string, any[]>>({});
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
 
   const { items, addItem, updateQuantity, getTotalItems, getTotalPrice, toggleCart } = useCartStore();
   const supabase = createClient();
-  const router = useRouter();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -165,7 +165,7 @@ export const QuickOrderList = () => {
                     <div 
                       key={product.id} 
                       className="grid grid-cols-[40px_1fr_45px_80px_45px] sm:grid-cols-[60px_1fr_80px_120px_80px] gap-2 sm:gap-4 p-2 sm:p-4 items-center hover:bg-amber-50/50 transition-colors cursor-pointer"
-                      // onClick={() => router.push(`/products/${product.id}`)}
+                      onClick={() => setSelectedProduct(product)}
                     >
                       
                       <div className="flex justify-center">
@@ -273,6 +273,11 @@ export const QuickOrderList = () => {
 
         </div>
       </div>
+      <ProductModal 
+        product={selectedProduct} 
+        isOpen={!!selectedProduct} 
+        onClose={() => setSelectedProduct(null)} 
+      />
     </div>
   );
 };
