@@ -18,6 +18,8 @@ const YoutubeIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const MAX_FILE_SIZE = 500 * 1024; 
+
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<string[]>(['All Categories']);
@@ -77,7 +79,7 @@ export default function AdminProductsPage() {
 
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select('id, name, category, price, unit_type, description, youtube_url, instagram_url, image_url, gallery_images, is_active, created_at')
       .order('created_at', { ascending: false });
 
     if (data && !error) {
@@ -136,6 +138,12 @@ export default function AdminProductsPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      
+      if (file.size > MAX_FILE_SIZE) {
+        alert('Image exceeds the 500KB limit. Please compress it using a tool like TinyPNG before uploading.');
+        return;
+      }
+
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
       setFormData({ ...formData, image_url: '' }); 
@@ -145,10 +153,26 @@ export default function AdminProductsPage() {
   const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const filesArray = Array.from(e.target.files);
-      setGalleryFiles(prev => [...prev, ...filesArray]);
-      
-      const newPreviews = filesArray.map(file => URL.createObjectURL(file));
-      setGalleryPreviews(prev => [...prev, ...newPreviews]);
+      const validFiles: File[] = [];
+      const oversizedFiles: string[] = [];
+
+      filesArray.forEach(file => {
+        if (file.size > MAX_FILE_SIZE) {
+          oversizedFiles.push(file.name);
+        } else {
+          validFiles.push(file);
+        }
+      });
+
+      if (oversizedFiles.length > 0) {
+        alert(`These files exceed the 500KB limit and were skipped:\n${oversizedFiles.join('\n')}`);
+      }
+
+      if (validFiles.length > 0) {
+        setGalleryFiles(prev => [...prev, ...validFiles]);
+        const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+        setGalleryPreviews(prev => [...prev, ...newPreviews]);
+      }
     }
   };
 
@@ -176,7 +200,7 @@ export default function AdminProductsPage() {
       const fileExt = imageFile.name.split('.').pop();
       const uniqueFileName = `main-${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('product-images')
         .upload(uniqueFileName, imageFile);
 
@@ -245,24 +269,33 @@ export default function AdminProductsPage() {
       is_active: formData.is_active
     };
 
-    let error, data;
+    let error;
+    let savedProduct = null;
 
     if (editingProduct) {
-      const { data: updateData, error: updateError } = await supabase
-        .from('products').update(productPayload).eq('id', editingProduct.id).select();
-      error = updateError; data = updateData;
+      const { error: updateError } = await supabase
+        .from('products')
+        .update(productPayload)
+        .eq('id', editingProduct.id);
+        
+      error = updateError;
+      if (!error) savedProduct = { ...editingProduct, ...productPayload };
     } else {
       const { data: insertData, error: insertError } = await supabase
-        .from('products').insert([productPayload]).select();
-      error = insertError; data = insertData;
+        .from('products')
+        .insert([productPayload])
+        .select('id, created_at') // Only fetch the newly generated ID
+        .single();
+        
+      error = insertError;
+      if (!error && insertData) savedProduct = { ...productPayload, id: insertData.id, created_at: insertData.created_at };
     }
 
     setSaving(false);
 
     if (error) {
       alert('Failed to save product: ' + error.message);
-    } else if (data && data.length > 0) {
-      const savedProduct = data[0];
+    } else if (savedProduct) {
       if (editingProduct) {
         setProducts(prev => prev.map(p => p.id === editingProduct.id ? savedProduct : p));
       } else {
@@ -430,13 +463,6 @@ export default function AdminProductsPage() {
                   
                   <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                     <button 
-                      onClick={() => window.open(`/products/${product.id}`, '_blank')}
-                      className="bg-slate-50 hover:bg-slate-100 text-slate-700 p-2 rounded-md font-poppins text-xs font-bold transition-colors flex items-center justify-center border border-slate-200 cursor-pointer"
-                      title="Preview Customer Page"
-                    >
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </button>
-                    <button 
                       onClick={() => handleToggleActive(product.id, product.is_active)}
                       className={`flex-1 py-2 rounded-md font-poppins text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer
                         ${product.is_active ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-green-50 text-green-700 hover:bg-green-100'}`}
@@ -547,7 +573,7 @@ export default function AdminProductsPage() {
                 
                 {/* Main Thumbnail */}
                 <div className="space-y-2">
-                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Primary Thumbnail (Required)</label>
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Primary Thumbnail (Max 500KB) *</label>
                   <div className="flex gap-4 items-start">
                     {(imagePreview || formData.image_url) ? (
                       <div className="w-24 h-24 shrink-0 bg-slate-100 rounded-lg overflow-hidden border border-gray-200">
@@ -580,7 +606,7 @@ export default function AdminProductsPage() {
 
                 {/* Additional Gallery Images */}
                 <div className="space-y-2">
-                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Additional Gallery Images</label>
+                  <label className="font-poppins text-xs font-bold text-gray-500 uppercase tracking-wider">Gallery Images (Max 500KB each)</label>
                   
                   <div className="flex flex-wrap gap-3 mb-3">
                     {formData.gallery_images.map((url, idx) => (
@@ -719,17 +745,17 @@ export default function AdminProductsPage() {
                 type="button" 
                 onClick={() => { setIsDeleteModalOpen(false); setProductToDelete(null); }}
                 disabled={deleting}
-                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-poppins font-semibold text-sm px-6 py-3 rounded-lg transition-colors disabled:opacity-50"
+                className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-poppins font-semibold text-sm px-6 py-3 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
               >
-                No, Keep Product
+                No, Keep
               </button>
               <button 
                 type="button" 
                 onClick={handleDeleteProduct}
                 disabled={deleting}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-poppins font-bold text-sm px-6 py-3 rounded-lg transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-poppins font-bold text-sm px-6 py-3 rounded-lg transition-colors shadow-lg shadow-red-500/30 flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
               >
-                {deleting ? <><Loader2 className="w-4 h-4 animate-spin"/> Deleting...</> : 'Yes, Delete permanently'}
+                {deleting ? <><Loader2 className="w-4 h-4 animate-spin"/> Deleting...</> : 'Yes, Delete'}
               </button>
             </div>
           </div>
