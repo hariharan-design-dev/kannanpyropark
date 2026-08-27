@@ -148,7 +148,7 @@ export default function AdminSettingsPage() {
         const fileExt = imageFile.name.split('.').pop();
         const fileName = `hero-bg-${Date.now()}.${fileExt}`;
         const { error: uploadError } = await supabase.storage
-          .from('product-images') // Replace with your actual bucket name
+          .from('product-images')
           .upload(fileName, imageFile);
 
         if (uploadError) throw new Error("Image upload failed: " + uploadError.message);
