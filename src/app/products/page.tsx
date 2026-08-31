@@ -5,6 +5,7 @@ import { Search, PackageOpen, RefreshCw } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { SafeImage } from '@/components/ui/safe-image';
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -151,7 +152,13 @@ function ProductsContent() {
               <div className="space-y-3">
                 <div className="relative w-full h-48 rounded-lg bg-stone-100 flex items-center justify-center overflow-hidden">
                   {prod.image_url ? (
-                    <img src={prod.image_url} alt={prod.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <SafeImage 
+                      src={prod.image_url} 
+                      alt={prod.name} 
+                      fill
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300" 
+                    />
                   ) : (
                     <span className="text-gray-400 text-xs">No Image</span>
                   )}

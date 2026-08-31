@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Plus, Minus, ShoppingBag, ShieldCheck, Check, Sparkles, X } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
+import { SafeImage } from '../ui/safe-image';
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -130,7 +131,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, isOpen, onC
             <div className="space-y-4">
               <div className="relative w-full aspect-square bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex items-center justify-center">
                 {activeImage ? (
-                  <img src={activeImage} alt={product.name || product.title} className="w-full h-full object-cover" />
+                  <SafeImage 
+                    src={activeImage} 
+                    alt={product.name || product.title} 
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover" 
+                  />
                 ) : (
                   <div className="flex flex-col items-center text-gray-300">
                     <Sparkles className="w-12 h-12 mb-2 opacity-30" />
@@ -152,7 +159,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({ product, isOpen, onC
                         activeImage === imgUrl ? 'border-[#d97706] shadow-md ring-2 ring-[#d97706]/20' : 'border-gray-200 opacity-70 hover:opacity-100'
                       }`}
                     >
-                      <img src={imgUrl} alt={`Thumbnail ${idx}`} className="w-full h-full object-cover" />
+                      <SafeImage 
+                        src={imgUrl} 
+                        alt={`Thumbnail ${idx}`} 
+                        fill
+                        sizes="100px"
+                        className="object-cover" 
+                      />
                     </button>
                   ))}
                 </div>

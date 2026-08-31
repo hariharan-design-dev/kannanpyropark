@@ -5,6 +5,7 @@ import { Loader2, Plus, Minus, Image as ImageIcon, ShoppingBag } from 'lucide-re
 import { createClient } from '@/utils/supabase/client';
 import { useCartStore } from '@/store/cartStore';
 import { ProductModal } from './product-modal';
+import { SafeImage } from '../ui/safe-image';
 
 // HARDCODED CATEGORY ORDER (For future dynamic update, fetch this from a DB table)
 const CUSTOM_CATEGORY_ORDER = [
@@ -169,9 +170,15 @@ export const QuickOrderList = () => {
                     >
                       
                       <div className="flex justify-center">
-                        <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center border border-gray-200 shrink-0">
+                        <div className="relative w-8 h-8 sm:w-12 sm:h-12 bg-gray-100 rounded overflow-hidden flex items-center justify-center border border-gray-200 shrink-0">
                           {product.image_url ? (
-                            <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                            <SafeImage 
+                              src={product.image_url}
+                              alt={product.name} 
+                              fill
+                              sizes="(max-width: 640px) 32px, 48px"
+                              className="object-cover" 
+                            />                            
                           ) : (
                             <ImageIcon className="w-4 h-4 sm:w-6 sm:h-6 text-gray-300" />
                           )}

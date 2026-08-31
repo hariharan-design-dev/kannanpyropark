@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Search, Package, Plus, Edit2, RefreshCw, X, Image as ImageIcon, Eye, EyeOff, UploadCloud, Loader2, Trash2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { AdminHeader } from '@/components/admin/admin-header';
+import { SafeImage } from '@/components/ui/safe-image';
 
 const InstagramIcon = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -433,7 +434,13 @@ export default function AdminProductsPage() {
                 
                 <div className="relative h-48 bg-slate-100 flex items-center justify-center border-b border-gray-100 group">
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} className="w-full h-full object-cover" />
+                    <SafeImage 
+                      src={product.image_url} 
+                      alt={product.name} 
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover" 
+                    />
                   ) : (
                     <ImageIcon className="w-10 h-10 text-slate-300" />
                   )}

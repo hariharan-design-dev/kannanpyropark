@@ -3,6 +3,7 @@
 import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useSettingsStore } from '@/store/settingsStore';
+import Image from 'next/image';
 
 export const HeroSection = () => {
   const { settings, fetchSettings } = useSettingsStore();
@@ -16,20 +17,17 @@ export const HeroSection = () => {
   return (
     <section className="relative w-full h-[700px] lg:h-[850px] overflow-hidden flex items-center justify-center">
       {/* Background Image */}
-      <div 
-        className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
-        style={{ 
-          backgroundImage: settings?.hero_bg_url ? `url('${settings.hero_bg_url}')` : 'none', 
-          backgroundColor: '#0f172a' 
-        }}
-      />
-      <div 
-        className="block md:hidden absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
-        style={{ 
-          backgroundImage: settings?.hero_bg_url ? `url('${settings.hero_bg_url}')` : 'none', 
-          backgroundColor: '#0f172a' 
-        }}
-      />
+      <div className="absolute inset-0 z-0 bg-[#0f172a] overflow-hidden">
+        {settings?.hero_bg_url && (
+          <Image 
+            src={settings.hero_bg_url} 
+            alt="Hero Background" 
+            fill 
+            priority
+            className="object-cover object-center" 
+          />
+        )}
+      </div>
       
       {/* Dark Overlay for text readability */}
       <div className="absolute inset-0 bg-black/50 z-10" />
